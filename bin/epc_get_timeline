@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+
+import sys
+sys.path.insert(0, '.')
+import re
+import argparse
+import epc_cli
+import glob
+import logging
+import time
+import base64
+import json
+from pprint import pprint
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--config", type=str, default="config.json",
+                    help="path to configuration file")
+parser.add_argument("-g", "--guid", type=str,
+                    help="GUID of the uploaded csv/xml", required=True)
+args = parser.parse_args()
+
+
+
+max_attempts = 5
+
+config_data = epc_cli.load_config(args.config)
+t = epc_cli.request_token(config_data)
+print()
+
+c = epc_cli.get_upload_timeline(t, config_data, args.guid)
+print(json.dumps(c['timeLineSteps'], indent=4).replace("null", "None"))
+#pprint(c['timeLineSteps'], indent=4)
+#r_data = {}
+#r_data = epc_cli.get_epidemiological_validation_report(t, config_data, "8fc8c047-d1fe-4a61-9f31-26d566817465")
+#print(len(r_data["epiReports"]))
+#for epi_report in r_data["epiReports"]:
+#    with open(epi_report['fileName'],"wb") as outf:
+#        outf.write(base64.b64decode(epi_report["fileData"])) 
+

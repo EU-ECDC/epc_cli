@@ -3,13 +3,14 @@
         "client_id": "",
         "client_secret" : "",
         "username": "",
-        "password": "",
-        "resource": ""
+        "password": ""
+        
     },
     "env": {
         "name": "",
         "authentication_url" : "",
-        "base_url_endpoint": ""
+        "base_url_endpoint": "",
+        "resource": ""
     }
 
 }

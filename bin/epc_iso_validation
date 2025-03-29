@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+import sys
+sys.path.insert(0, '.')
+import re
+import argparse
+import epc_cli
+import glob
+import logging
+import time
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--config", type=str, default="config.json",
+                    help="path to configuration file")
+parser.add_argument("-s", "--subject", type=str,
+                    help="Subject code (e.g. LEGIISO)", required=True)
+parser.add_argument("-g", "--guid", type=str,
+                    help="GUID of the uploaded csv/xml", required=True)
+parser.add_argument("-r", "--regex", type=str,
+                    help="Regular expression to extract the NationalRecordId (e.g. \"^(?<RecordId>.+)_(?<Suffix>.*).(fastq|fq).gz$)\"", required=True)
+args = parser.parse_args()
+
+
+
+max_attempts = 5
+
+config_data = epc_cli.load_config(args.config)
+t = epc_cli.request_token(config_data)
+print()
+
+tl = epc_cli.get_upload_timeline(t, config_data, args.guid)
+print()
+if (len(tl['timeLineSteps'])>=4) and (tl['timeLineSteps'][3]["statusDescription"] == "ISO file validation successful"):
+    raise Exception("ERROR: You have already passed the ISO validation step [StatusDescription: ISO file validation successful]. ")
+                                      
+epc_cli.start_iso_validation(t, 
+                     config_data, 
+                     args.guid, 
+                     rf"{args.regex}",  
+                     args.subject)
+print()
+j=0
+while(j<max_attempts):
+    s = epc_cli.get_status_ISO_validation(t, config_data, args.guid)
+    if s == []:
+        print("    Status: Data validation ongoing")
+        #print("    Attempt: {}".format(j+1))
+        print()
+        if j > max_attempts:
+            print("ERROR: exceeded maximum number of attempts")
+            sys.exit()
+        time.sleep(10)
+        j=j+1
+    else:
+        not_paired = 0
+        record_ids_not_paired = [] 
+        for e in s:
+            if e['isPaired'] == "No":
+                not_paired += 1
+                record_ids_not_paired.append(e['recordId'])
+        if not_paired:
+            print("    Status: ISO validation failed")
+            print("    Issue: File mappings not found for {}".format(", ".join(record_ids_not_paired)))
+            sys.exit()
+        else:
+            print("    Status: ISO validation successful")
+        break
