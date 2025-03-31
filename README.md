@@ -3,12 +3,13 @@
 ## Installation
 You first need to clone the git repository and create the epc_cli conda environment:
 ```
-git cllone https://github.com/ejfresch/epc_cli.git
+git clone https://github.com/ejfresch/epc_cli.git
 cd epc_cli/
 mamba env create -f env/epc_cli.yaml 
 ```
 
 Then you need to set up your configuration file (config.json) by adding your credentials and the urls of the resources that you will use to contact the API endpoints. 
+
 Note: Some users might need to set up use multiple configuration files to account for for different roles, subjects and/or environments. 
 
 ## Usage
