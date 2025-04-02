@@ -1,0 +1,267 @@
+#!/usr/bin/env python
+
+import sys
+sys.path.insert(0, '.')
+import re
+import argparse
+import epc_cli
+import glob
+import logging
+import time
+import json
+import datetime
+
+def validate_date(date_str):
+    try:
+        return datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid date format: {date_str}. Expected YYYY-MM-DD.")
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--config", 
+                    type=str, 
+                    default="config.json",
+                    help="path to configuration file")
+parser.add_argument("-t", "--upload_type", 
+                    type=str,
+                    help="ADD/UPDATE or DELETE", required=True)
+
+parser.add_argument("-f", "--files", type=str, nargs='+',
+                    help="List of files to process [csv|xml|fasta|fastq.gz|fq.gz]. Files should be space-separated. Wildcards allowed.", required=True)
+
+parser.add_argument("-s", "--subject", type=str,
+                    help="Subject code (e.g. LEGIISO)")
+parser.add_argument("-cc", "--country_code", type=str,
+                    help="Country code (ISO 3166-1 alpha-2, e.g. IT, SE, DE)")
+parser.add_argument("--rp_start", 
+                    type=validate_date, 
+                    help="Start date of the reporting period in ISO format (YYYY-MM-DD)")
+parser.add_argument("--rp_end", 
+                    type=validate_date, 
+                    help="End date of the reporting period in ISO format (YYYY-MM-DD)")
+parser.add_argument("-r", "--regex", type=str,
+                    help="Regular expression to extract the NationalRecordId (e.g. \"^(?<RecordId>.+)_(?<Suffix>.*).(fastq|fq).gz$)\"")
+#TODO parser.add_argument("--rp_autodetect",  
+#                    help="Autodetects the reporting period from the data",
+#                    action="store_true")
+parser.add_argument("--approve", 
+                    help="Self-approval of the submission", 
+                    action="store_true")
+args = parser.parse_args()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+
+
+# Expand wildcards
+expanded_files = []
+for pattern in args.files:
+    expanded_files.extend(glob.glob(pattern))  # Expand each pattern
+
+if not expanded_files:
+    print("Error: No matching files found for the provided pattern(s).")
+    exit(1)
+
+target_extensions = (".csv", ".xml")
+csv_xml = [f for f in expanded_files if f.endswith(target_extensions)]
+
+target_extensions = (".fastq.gz",".fq.gz", ".fasta")
+seq_data = [f for f in expanded_files if f.endswith(target_extensions)]
+
+
+def csv_upload_step(token, config_data, path_to_csv, upload_type, rp_start, rp_end):
+    max_attempts = 10
+    # file upload
+    d_my_guid = epc_cli.upload_csv(token, config_data, path_to_csv, upload_type, rp_start, rp_end)
+    print()
+    i=0
+    l_guids_ok=[]
+    while(i<=max_attempts):
+        l_guids_data_ok = epc_cli.get_upload_save_status(token, config_data, d_my_guid)
+        #print("    Attempt: {}".format(i+1))
+        print()
+        if l_guids_data_ok != []:
+            break
+        if i == max_attempts:
+            print("ERROR: exceeded maximum number of attempts")
+            sys.exit(3)
+        i+=1
+        time.sleep(5)
+    
+    # technical validation
+    b = epc_cli.start_tech_validation(token, config_data, l_guids_data_ok)
+    print()
+    technicalValidationJobGroupGuid=None
+    j=0
+    while(j<=max_attempts):
+        s = epc_cli.get_upload_timeline(token, config_data, l_guids_data_ok[0])
+        #print("    Attempt: {}".format(j+1))
+        print()
+        if (len(s["timeLineSteps"]) > 0) and (s["timeLineSteps"][-1]["uploadState"] == "Tech validation successful"):
+            technicalValidationJobGroupGuid=s["technicalValidationJobGroupGuid"]
+            break
+        if j > max_attempts:
+            print("ERROR: exceeded maximum number of attempts")
+            sys.exit(4) 
+        time.sleep(10)
+        j+=1
+    if technicalValidationJobGroupGuid:
+        # getting the technical validation report
+        epc_cli.get_csv_tech_validation(token, config_data, technicalValidationJobGroupGuid, f"{config_data["outputs"]["submission_data"]}/submissions/{l_guids_data_ok[0]}/technical_validation_report.csv")
+    return(l_guids_data_ok[0])
+
+
+config_data = epc_cli.load_config(args.config)
+
+def epidemiological_validation_step(token, config_data, guid):
+    a = 1
+    max_attempts = 10
+    # starting epidemiological validation
+    vdata = epc_cli.start_epidemiological_validation(token, config_data, guid)
+    print("    Started: {}".format(vdata["isSuccessful"]))
+    print("    resultMessage: {}".format(vdata["resultMessage"]))
+    print("    Epidemiological Validation GUID: {}".format(vdata["taskCorrelationGuid"]))
+    print()
+    if vdata["isSuccessful"] == True:
+        generating_report = True
+        while(generating_report):
+            tl2 = epc_cli.get_upload_timeline(token, config_data, guid)
+            #print(f"    Attempt {a}")
+            print()
+            if tl2['timeLineSteps'][-1]["statusDescription"] == "Data validation report ready":
+                break
+            if tl2['timeLineSteps'][-1]["statusDescription"] == "Data validation failed":
+                print("ERROR: data validation failed")
+                sys.exit(81)
+            if a > max_attempts:
+                print("ERROR: exceeded maximum number of attempts")
+                sys.exit()
+            a = a + 1
+            time.sleep(60)
+            
+        # getting the epidemiological validation report
+        epc_cli.get_epidemiological_validation_report(token, config_data, vdata["taskCorrelationGuid"], f"{config_data["outputs"]["submission_data"]}/submissions/{guid}/report.html")
+        return(vdata["taskCorrelationGuid"])
+    else:
+        return(None)
+
+
+def iso_validation_step(token, config_data, guid, my_regex, subject_code):
+    max_attempts = 5
+
+    tl = epc_cli.get_upload_timeline(token, config_data, guid)
+    print()
+    if (len(tl['timeLineSteps'])>=4) and (tl['timeLineSteps'][3]["statusDescription"] == "ISO file validation successful"):
+        raise Exception("ERROR: You have already passed the ISO validation step [StatusDescription: ISO file validation successful]. ")
+                                        
+    epc_cli.start_iso_validation(token, 
+                        config_data, 
+                        guid, 
+                        rf"{my_regex}",  
+                        subject_code)
+    print()
+    j=0
+    while(j<max_attempts):
+        s = epc_cli.get_status_ISO_validation(token, config_data, guid)
+        if s == []:
+            print("    Status: Data validation ongoing")
+            #print("    Attempt: {}".format(j+1))
+            print()
+            if j > max_attempts:
+                print("ERROR: exceeded maximum number of attempts")
+                sys.exit()
+            time.sleep(10)
+            j=j+1
+        else:
+            not_paired = 0
+            record_ids_not_paired = [] 
+            for e in s:
+                if e['isPaired'] == "No":
+                    not_paired += 1
+                    record_ids_not_paired.append(e['recordId'])
+            if not_paired:
+                print("    Status: ISO validation failed")
+                print("    Issue: File mappings not found for {}".format(", ".join(record_ids_not_paired)))
+                sys.exit()
+            else:
+                print("    Status: ISO validation successful")
+            break
+
+
+# case 1: only epidemiological data
+if csv_xml and (not seq_data):
+
+    # die if the reporting period has not been specified by the user
+    if not args.rp_start or not args.rp_end:
+        print("ERROR: It is required to specify the reporting period when submitting epidemiological data.")
+        print(" - Use --rp_start and --rp_end to specify the reporting period")
+        #print(" - If the reporting period spans from the first to the last reported case, you can use the --rp_autodetect option instead.")
+        sys.exit(2)
+
+    t = epc_cli.request_token(config_data)
+    print()
+
+    # each file is a different submission
+    for f in csv_xml:
+        
+        csv_guid = csv_upload_step(t, config_data, f, args.upload_type, args.rp_start, args.rp_end)
+        print()
+        
+        epi_valid_guid = epidemiological_validation_step(t, config_data, csv_guid)
+
+        # if the user user the --approve flag I approve the submission
+        if args.approve:
+            ndata = epc_cli.approve_reject_submission(t, config_data, epi_valid_guid, "Approve")
+            print(f"    action: Approve")
+            print(f"    isSuccessful: {ndata["isSuccessful"]}")
+            print(f"    taskCorrelationGuid: {ndata["taskCorrelationGuid"]}")
+                    
+# case 2: epidemiological and sequencing data
+elif csv_xml and seq_data:
+    
+    # die if the subject_code, country code or regex are not specified
+    if not args.subject or not args.country_code or not args.regex:
+        print("ERROR: Specifying the subject code, country code, and regex for file mapping is mandatory when submitting sequencing data.")
+        print(" - Use --subject to specify the subject (e.g. --subject LEGIISO)")
+        print(" - Use --country_code to specify the country code (e.g. --country_code IT)")
+        print(" - Use --regex to specify the regular expression used for file mapping (--regex \"^(?<RecordId>.+)_(?<Suffix>.*).(fastq|fq).gz$)\")")
+        
+        #print(" - If the reporting period spans from the first to the last reported case, you can use the --rp_autodetect option instead.")
+        sys.exit(2)
+
+    if len(csv_xml) != 1:
+        print("ERROR: for now I can handle only one csv/xml at the time in combination with sequencing data")
+
+    t = epc_cli.request_token(config_data)
+    print()
+
+    csv_guid = csv_upload_step(t, config_data, csv_xml[0], args.upload_type, args.rp_start, args.rp_end)
+    print()
+
+    for fa in seq_data:
+        a = epc_cli.get_s3_presigned_url(t, config_data, args.subject, args.country_code, fa)
+        print()
+        #print("pre-signed url: {}".format(a['fileName']))
+        epc_cli.upload_with_presigned_url(fa, a['fileName'])
+        print()
+
+    iso_validation_step(t, config_data, csv_guid, args.regex, args.subject)
+    print()
+
+    epi_valid_guid = epidemiological_validation_step(t, config_data, csv_guid)
+
+    # if the user user the --approve flag I approve the submission
+    if args.approve:
+        ndata = epc_cli.approve_reject_submission(t, config_data, epi_valid_guid, "Approve")
+        print(f"    action: Approve")
+        print(f"    isSuccessful: {ndata["isSuccessful"]}")
+        print(f"    taskCorrelationGuid: {ndata["taskCorrelationGuid"]}")
+
+else:
+    print("ERROR: Unexpected combination of input files")
+
