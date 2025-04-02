@@ -1,5 +1,6 @@
 from .auth import *  # Import everything from auth.py
 from .core import *  # Import everything from core.py
+from .utils import *  # Import everything from core.py
 
 __all__ = [  # List all functions I want to expose
     "load_config"
@@ -10,5 +11,7 @@ __all__ = [  # List all functions I want to expose
     "get_upload_timeline",
     "get_csv_tech_validation",
     "get_s3_presigned_url",
-    "upload_with_presigned_url"
+    "upload_with_presigned_url",
+    "load_metadata",
+    "save_metadata"
 ]

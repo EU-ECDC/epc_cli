@@ -11,6 +11,7 @@ import time
 import logging
 import datetime
 from logging.handlers import MemoryHandler
+import csv
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,8 +60,6 @@ if args.rp_start:
 if args.rp_end:
     rp_end = args.rp_end
 
-
-
 config = epc_cli.load_config(args.config)
 
 t = epc_cli.request_token(config)
@@ -96,11 +95,12 @@ for f in expanded_files:
             break
         if j > max_attempts:
             print("ERROR: exceeded maximum number of attempts")
-            sys.exit()
+            sys.exit() 
         time.sleep(10)
         j+=1
     if technicalValidationJobGroupGuid:
-        epc_cli.get_csv_tech_validation(t, config, technicalValidationJobGroupGuid, f"submissions/{l_guids_data_ok[0]}/technical_validation_report.csv")
-
+        epc_cli.get_csv_tech_validation(t, config, technicalValidationJobGroupGuid, f"{config["outputs"]["submission_data"]}/submissions/{l_guids_data_ok[0]}/technical_validation_report.csv")
+        
+ 
 
     
