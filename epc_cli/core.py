@@ -55,7 +55,7 @@ def upload_csv_tech_validation(token, config_data, csv_file, upload_type, rp_sta
 
     # request to upload the file
     basename_csv = os.path.basename(csv_file)
-    x_file_identifier = f"{basename_csv.replace(".", "")}-{len(csv_data)}-{datetime.now().isoformat().split("T")[0].replace("-", "")}"
+    x_file_identifier = f"{basename_csv.replace('.', '')}-{len(csv_data)}-{datetime.now().isoformat().split('T')[0].replace('-', '')}"
     print(x_file_identifier)
     headers = {
         "Authorization": "Bearer {}".format(token),
@@ -103,7 +103,7 @@ def upload_csv(token, config_data, csv_file, upload_type, rp_start = None, rp_en
 
     # request to upload the file
     basename_csv = os.path.basename(csv_file)
-    x_file_identifier = f"{basename_csv.replace(".", "")}-{len(csv_data)}-{datetime.now().isoformat().split("T")[0].replace("-", "")}"
+    x_file_identifier = f"{basename_csv.replace('.', '')}-{len(csv_data)}-{datetime.now().isoformat().split('T')[0].replace('-', '')}"
     #print(x_file_identifier)
 
     ignore_date_start_end = True
@@ -329,9 +329,9 @@ def start_iso_validation(token, config_data, upload_guid, reg_expr, subject_code
     print(f"    guid: {upload_guid}")
     print(f"    regex: {reg_expr}")
     naming_conv_type_id = None
-    if reg_expr.endswith(("fq.gz", "fastq.gz", "fq.gz$", "fastq.gz$",".(fastq|fq).gz$", '\.(fastq|fq)\.gz$')):
+    if reg_expr.endswith(("fq.gz", "fastq.gz", "fq.gz$", "fastq.gz$", r".(fastq|fq).gz$", r'\.(fastq|fq)\.gz$')):
         naming_conv_type_id = 1
-    elif reg_expr.endswith(("fasta", "fa", "fa$", "fasta$", ".(fasta|fa)$", '\.(fasta|fa)\.gz$')):
+    elif reg_expr.endswith(("fasta", "fa", "fa$", "fasta$", r".(fasta|fa)$", r'\.(fasta|fa)\.gz$')):
         naming_conv_type_id = 2
     else:
         raise Exception(f"ERROR: cannot determine the naming convention type id")

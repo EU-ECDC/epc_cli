@@ -26,7 +26,7 @@ mamba activate epc_cli
 
 Then we can submit a csv file with case data:
 ```
-./bin/epc_automatic_submission --config config-uat-HD-FR.json --upload_type "Add/Update" --files dataset/epc_Deng_tessy_2025_20240523_v1.csv --rp_start 2025-01-01 --rp_end 2025-03-27
+./bin/epc_automatic_submission --config config-uat-HD-FR.json --upload_type "Add/Update" --files epc_Deng_tessy_2025_20240523_v1.csv --rp_start 2025-01-01 --rp_end 2025-03-27
 ```
 
 Notes: 
@@ -105,6 +105,21 @@ epc_cli.get_user_permissions(token, config_data)
 which gives the following output:
 ```
 {'hasEpipulseCasesPermission': True, 'hasWGSSubjectsPermission': True, 'hasUploadPermission': True, 'hasApprovePermission': True, 'hasAnyNonWGSUploadPermission': False, 'hasAnyWGSUploadPermission': True, 'hasAnyAllowWebEntryUploadPermission': False}
+```
+
+
+## Build image
+To build the image, run the following command from the root of the repository:
+```
+podman build -t epc_cli .
+``` 
+To run the container, use the following command:
+```
+podman run -it  epc_cli \ 
+    -v /path/to/your/config.json:/app/config.json:Z \
+    -v /path/to/your/submissions:/app/submissions:Z \
+    -v /path/to/your/data:/app/data:Z \
+    epc_cli
 ```
 
 
