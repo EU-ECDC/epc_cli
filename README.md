@@ -4,6 +4,10 @@
 You first need to clone the git repository and create the epc_cli conda environment:
 ```
 git clone https://github.com/ejfresch/epc_cli.git
+
+# For ECDC staff: you can use the devops repository
+# git clone https://EU-ECDC@dev.azure.com/EU-ECDC/Bioinformatics/_git/epc_cli
+
 cd epc_cli/
 mamba env create -f env/epc_cli.yaml 
 ```
