@@ -111,8 +111,28 @@ which gives the following output:
 {'hasEpipulseCasesPermission': True, 'hasWGSSubjectsPermission': True, 'hasUploadPermission': True, 'hasApprovePermission': True, 'hasAnyNonWGSUploadPermission': False, 'hasAnyWGSUploadPermission': True, 'hasAnyAllowWebEntryUploadPermission': False}
 ```
 
+#### epc_cli and Docker
+If you prefer to use a docker container to run epc_cli, we provide a dockerfile (`docker/Dockerfile_epc_cli.prod`) that you can use to build an image. 
+
+You can build the image using the following command:
+```
+docker build . -f docker/Dockerfile_epc_cli.prod --tag ejfresch/epc_cli:0.4.0 --no-cache
+```
+
+Then you can execute the commands described in the 'Usage' section, using the following syntax:
+```
+docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.4.0 [my_command]
+```
+
+For instance, if you want to submit a csv file with case data, you should type
+```
+docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.4.0 epc_automatic_submission --config config-uat-HD-FR.json --upload_type "Add/Update" --files dataset/epc_Deng_tessy_2025_20240523_v1.csv --rp_start 2025-01-01 --rp_end 2025-03-27
+```
 
 ## Changelog
+
+0.4.0
+- added dockerfile to generate a docker image for epc_cli
 
 0.3.0
 - improved automation features

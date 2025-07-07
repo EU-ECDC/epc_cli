@@ -1,0 +1,22 @@
+FROM mambaorg/micromamba:1.2.0
+
+LABEL maintainer="Luca Freschi l.freschi@gmail.com"
+# container name: epc_cli
+# tag: 0.4.0 
+
+USER root
+RUN apt-get update && apt-get install -y procps
+
+COPY . /app
+RUN chown -R $MAMBA_USER /app
+
+USER $MAMBA_USER
+
+RUN micromamba create -n epc_cli --file /app/env/epc_cli.yaml
+RUN micromamba clean --all --yes
+
+ENV PATH=/opt/conda/envs/epc_cli/bin:$PATH
+
+WORKDIR /app
+
+RUN pip install .
