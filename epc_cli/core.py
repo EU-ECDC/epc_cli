@@ -9,6 +9,7 @@ from tqdm import tqdm
 import pandas as pd
 import logging
 import base64
+import certifi
 
 
 def get_all_wgs_subjects(token, config_data):
@@ -16,7 +17,7 @@ def get_all_wgs_subjects(token, config_data):
         'Authorization': "Bearer {}".format(token)
     }
     endpoint = config_data["env"]["base_url_endpoint"] + "/api/v1/DataUploadAPI/AllWGSSubjects"
-    response = requests.get(endpoint, headers=headers, verify=False)
+    response = requests.get(endpoint, headers=headers, verify=certifi.where())
     if response.status_code == 200:
         try:
             wgs_subjects = response.json()
@@ -33,7 +34,7 @@ def get_user_permissions(token, config_data):
         'Authorization': "Bearer {}".format(token)
     }
     endpoint = config_data["env"]["base_url_endpoint"] + "/api/v1/DataUploadAPI/UserPermissions"
-    response = requests.get(endpoint, headers=headers, verify=False)
+    response = requests.get(endpoint, headers=headers, verify = certifi.where())
     if response.status_code == 200:
         try:
             wgs_subjects = response.json()
@@ -77,7 +78,7 @@ def upload_csv_tech_validation(token, config_data, csv_file, upload_type, rp_sta
     print(payload)
 
     #print(json.dumps(payload))
-    response = requests.post(endpoint, headers=headers, files=payload, verify=False)
+    response = requests.post(endpoint, headers=headers, files=payload, verify = certifi.where())
     if response.status_code == 200:
         try:
             upload_msg = response.json()
@@ -133,7 +134,7 @@ def upload_csv(token, config_data, csv_file, upload_type, rp_start = None, rp_en
 
 
     #print(encoder)
-    response = requests.post(endpoint, headers = headers, data = encoder, verify = False)
+    response = requests.post(endpoint, headers = headers, data = encoder, verify = certifi.where())
     
     if response.status_code == 200:
         try:
@@ -159,7 +160,7 @@ def get_upload_save_status(token, config_data, d_guids):
     }
 
     payload = list(d_guids.values())
-    response = requests.post(endpoint, headers = headers, json = payload, verify = False)
+    response = requests.post(endpoint, headers = headers, json = payload, verify = certifi.where())
     if response.status_code == 200:
         try:
             upload_msg = response.json()
@@ -184,7 +185,7 @@ def start_tech_validation(token, config_data, l_guids):
         "uploadGuids": l_guids,
         "autoStartEpidemiologicalValidation": True
     }
-    response = requests.post(endpoint, headers = headers, json = payload, verify = False)
+    response = requests.post(endpoint, headers = headers, json = payload, verify = certifi.where())
     if response.status_code == 200:
         try:
             upload_msg = response.json()
@@ -204,7 +205,7 @@ def get_csv_tech_validation(token, config_data, tech_validation_job_group_guid, 
     headers = {
         "Authorization": "Bearer {}".format(token),
     }
-    response = requests.get(endpoint, headers = headers, verify = False, stream = True)
+    response = requests.get(endpoint, headers = headers,  verify = certifi.where(), stream = True)
     if response.status_code == 200:
         try:
             print(f"    Writing down report on {path_csv_report}")
@@ -225,7 +226,7 @@ def get_upload_timeline(token, config_data, upload_guid):
     headers = {
         "Authorization": "Bearer {}".format(token),
     }
-    response = requests.get(endpoint, headers = headers, verify = False)
+    response = requests.get(endpoint, headers = headers, verify = certifi.where())
     if response.status_code == 200:
         try:
             upload_msg = response.json()
@@ -252,7 +253,7 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
     basename = os.path.basename(file_name)
     endpoint = config_data["env"]["base_url_endpoint"] + f"/api/v1/DataUploadAPI/WGS-Upload/{subject_code}/{country_code}/{basename}"
     #print(endpoint)
-    response = requests.get(endpoint, headers=headers, verify=False)
+    response = requests.get(endpoint, headers=headers, verify = certifi.where())
     if response.status_code == 200:
         try:
             s3_url_data = response.json()
@@ -307,7 +308,7 @@ def get_naming_conventions_by_subject_code(token, config_data, subject_code, out
     headers = {
         "Authorization": "Bearer {}".format(token),
     }
-    response = requests.get(endpoint, headers = headers, verify = False)
+    response = requests.get(endpoint, headers = headers, verify = certifi.where())
     if response.status_code == 200:
         try:
             tab = pd.DataFrame(response.json())
@@ -349,7 +350,7 @@ def start_iso_validation(token, config_data, upload_guid, reg_expr, subject_code
         }]
     }
     #print(payload)
-    response = requests.post(endpoint, headers = headers, json = payload, verify = False)
+    response = requests.post(endpoint, headers = headers, json = payload, verify = certifi.where())
     if response.status_code == 200:
         try:
             upload_msg = response.json()
@@ -367,7 +368,7 @@ def get_status_ISO_validation(token, config_data, upload_guid):
         'Authorization': "Bearer {}".format(token)
     }
     endpoint = config_data["env"]["base_url_endpoint"] + f"/api/v1/DataUploadAPI/Uploads/{upload_guid}/Records"
-    response = requests.get(endpoint, headers=headers, verify=False)
+    response = requests.get(endpoint, headers=headers, verify = certifi.where())
     if response.status_code == 200:
         try:
             response_msg = response.json()
@@ -388,7 +389,7 @@ def start_epidemiological_validation(token, config_data, upload_guid):
     payload = {
         "uploadGuids": [upload_guid]
     }
-    response = requests.post(endpoint, headers = headers, json = payload, verify = False)
+    response = requests.post(endpoint, headers = headers, json = payload, verify = certifi.where())
     if response.status_code == 200:
         try:
             response_msg = response.json()
@@ -408,7 +409,7 @@ def get_status_epidemiological_validation(token, config_data, subject_code):
         'Authorization': "Bearer {}".format(token)
     }
     endpoint = config_data["env"]["base_url_endpoint"] + f"/api/v1/DataUploadAPI/EpidemiologicalValidations/OngoingStatus/{subject_code}"
-    response = requests.get(endpoint, headers=headers, verify=False)
+    response = requests.get(endpoint, headers=headers, verify = certifi.where())
     if response.status_code == 200:
         try:
             response_msg = response.json()
@@ -429,7 +430,7 @@ def get_epidemiological_validation_report(token, config_data, epi_validation_gui
         'Authorization': "Bearer {}".format(token)
     }
     endpoint = config_data["env"]["base_url_endpoint"] + f"/api/v1/DataUploadAPI/EpidemiologicalValidations/{epi_validation_guid}/Report/report.html"
-    response = requests.get(endpoint, headers=headers, verify=False)
+    response = requests.get(endpoint, headers=headers, verify = certifi.where())
     if response.status_code == 200:
         try:
             response_msg = response.json()
@@ -457,7 +458,7 @@ def approve_reject_submission(token, config_data, epi_validation_guid, action, r
         "rejectReasonMessage": reject_reason_msg
     }
     
-    response = requests.post(endpoint, headers=headers, json = payload, verify=False)
+    response = requests.post(endpoint, headers=headers, json = payload, verify = certifi.where())
     if response.status_code == 200:
         try:
             response_msg = response.json()
