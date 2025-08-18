@@ -62,8 +62,7 @@ Some subjects use a parent-child data model, where multiple interrelated files a
 
 The submission process differs only slightly from standard submissions. In this specific case we 
 ```
-./bin/epc_automatic_submission -c data/config-uat.json --upload_type "Add/Update" -f data/1.SALMISO_myupload.csv data/2.SALMISO_myupload_AST.csv --subject SALMISO --country_code NL --parent_child --rp_start 2022-04-13 --rp_end 2022-
-09-10
+./bin/epc_automatic_submission -c data/config-uat.json --upload_type "Add/Update" -f data/1.SALMISO_myupload.csv data/2.SALMISO_myupload_AST.csv --subject SALMISO --country_code NL --parent_child --rp_start 2022-04-13 --rp_end 2022-09-10
 ```
 
 Notes: 
@@ -187,22 +186,25 @@ docker build . -f docker/Dockerfile_epc_cli.prod --tag [your_namespace]/epc_cli:
 ```
 For instance, in our case this is:
 ```
-docker build . -f docker/Dockerfile_epc_cli.prod --tag ejfresch/epc_cli:0.4.1 --no-cache
+docker build . -f docker/Dockerfile_epc_cli.prod --tag ejfresch/epc_cli:0.5.1 --no-cache
 ```
 
 
 Then you can execute the commands described in the 'Usage' section, using the following syntax:
 ```
-docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.4.1 [my_command]
+docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.5.1 [my_command]
 ```
 Note: please remember to change the tag according to your namespace and the version of epc_cli you are using
 
 For instance, if you want to submit a csv file with case data, you should type
 ```
-docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.4.1 epc_automatic_submission --config config-uat-HD-FR.json --upload_type "Add/Update" --files dataset/epc_Deng_tessy_2025_20240523_v1.csv --rp_start 2025-01-01 --rp_end 2025-03-27
+docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.5.1 epc_automatic_submission --config config-uat-HD-FR.json --upload_type "Add/Update" --files dataset/epc_Deng_tessy_2025_20240523_v1.csv --rp_start 2025-01-01 --rp_end 2025-03-27
 ```
 
 ## Changelog
+0.5.1
+- README and Dockerfile updated
+
 0.5.0
 - support for subjects with a parent-child layout
 
