@@ -39,7 +39,9 @@ parser.add_argument("--rp_start", type=validate_date,
                     help="Start date of the reporting period in ISO format (YYYY-MM-DD)")
 parser.add_argument("--rp_end", type=validate_date, 
                     help="End date of the reporting period in ISO format (YYYY-MM-DD)")
-
+parser.add_argument("-pc","--parent_child", 
+                    help="Exactly two [csv|xml] files are expected. Assumpion: first is parent", 
+                    action="store_true")
 args = parser.parse_args()
 
 # Expand wildcards
@@ -65,23 +67,42 @@ config = epc_cli.load_config(args.config)
 t = epc_cli.request_token(config)
 print()
 
+z_archive = None
+
+if args.parent_child and len(expanded_files) == 2:
+    z_archive = epc_cli.zip_files(expanded_files)
+    expanded_files = [z_archive]
+
 for f in expanded_files:
 
     d_my_guid = epc_cli.upload_csv(t, config, f, args.upload_type, rp_start, rp_end)
     print()
     i=0
-    l_guids_ok=[]
-    while(i<max_attempts):
+    l_guids_ok = []
+    while(i<=max_attempts):
         l_guids_data_ok = epc_cli.get_upload_save_status(t, config, d_my_guid)
         #print("    Attempt: {}".format(i+1))
         print()
         if l_guids_data_ok != []:
             break
-        if i > max_attempts:
+        if i == max_attempts:
             print("ERROR: exceeded maximum number of attempts")
             sys.exit()
         i+=1
         time.sleep(5)
+
+    target_guid = None
+    if len(l_guids_data_ok) == 1:
+        target_guid = l_guids_data_ok[0]
+    elif len(l_guids_data_ok) == 2: # for subjects with a parent-child layout
+        d3 = epc_cli.search_metadata_file_upload_by_guid(t, config, l_guids_data_ok[0])
+        target_guid = l_guids_data_ok[0] if any(item.get("uploadGuid") for item in d3.get("data") or []) else l_guids_data_ok[1]
+        print(f"    GUID (to trigger epidemiological validation and track the status of the submission): {target_guid}")
+        print()
+    else:
+        print("ERROR: I do not know how to handle this condition (more than two guids)")
+        sys.exit(6)
+    
     b = epc_cli.start_tech_validation(t, config, l_guids_data_ok)
     print()
     technicalValidationJobGroupGuid=None
@@ -90,7 +111,7 @@ for f in expanded_files:
         s = epc_cli.get_upload_timeline(t, config, l_guids_data_ok[0])
         #print("    Attempt: {}".format(j+1))
         print()
-        if (len(s["timeLineSteps"]) > 0) and (s["timeLineSteps"][-1]["uploadState"] == "Tech validation successful"):
+        if (len(s["timeLineSteps"]) > 0) and (s["timeLineSteps"][-1]["uploadState"] in ["Tech validation successful", "Tech validation failed"]):
             technicalValidationJobGroupGuid=s["technicalValidationJobGroupGuid"]
             break
         if j > max_attempts:
@@ -101,6 +122,10 @@ for f in expanded_files:
     if technicalValidationJobGroupGuid:
         epc_cli.get_csv_tech_validation(t, config, technicalValidationJobGroupGuid, f"{config["outputs"]["submission_data"]}/submissions/{l_guids_data_ok[0]}/technical_validation_report.csv")
         
- 
 
+# I remove the zip archive
+if z_archive and os.path.isfile(z_archive):
+    os.remove(z_archive)
+    print()
+    print(f"Temporary zip archive {z_archive} correctly removed")
     

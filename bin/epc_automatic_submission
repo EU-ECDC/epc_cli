@@ -9,6 +9,9 @@ import glob
 import logging
 import time
 import json
+import uuid
+import zipfile
+import os
 import datetime
 
 def validate_date(date_str):
@@ -29,7 +32,6 @@ parser.add_argument("-t", "--upload_type",
 
 parser.add_argument("-f", "--files", type=str, nargs='+',
                     help="List of files to process [csv|xml|fasta|fastq.gz|fq.gz]. Files should be space-separated. Wildcards allowed.", required=True)
-
 parser.add_argument("-s", "--subject", type=str,
                     help="Subject code (e.g. LEGIISO)")
 parser.add_argument("-cc", "--country_code", type=str,
@@ -45,6 +47,9 @@ parser.add_argument("-r", "--regex", type=str,
 #TODO parser.add_argument("--rp_autodetect",  
 #                    help="Autodetects the reporting period from the data",
 #                    action="store_true")
+parser.add_argument("-pc","--parent_child", 
+                    help="Exactly two [csv|xml] files are expected. Assumpion: first is parent", 
+                    action="store_true")
 parser.add_argument("--approve", 
                     help="Self-approval of the submission", 
                     action="store_true")
@@ -78,9 +83,10 @@ def csv_upload_step(token, config_data, path_to_csv, upload_type, rp_start, rp_e
     max_attempts = 10
     # file upload
     d_my_guid = epc_cli.upload_csv(token, config_data, path_to_csv, upload_type, rp_start, rp_end)
+
     print()
     i=0
-    l_guids_ok=[]
+    l_guids_data_ok = []
     while(i<=max_attempts):
         l_guids_data_ok = epc_cli.get_upload_save_status(token, config_data, d_my_guid)
         #print("    Attempt: {}".format(i+1))
@@ -93,16 +99,28 @@ def csv_upload_step(token, config_data, path_to_csv, upload_type, rp_start, rp_e
         i+=1
         time.sleep(5)
     
+    target_guid = None
+    if len(l_guids_data_ok) == 1:
+        target_guid = l_guids_data_ok[0]
+    elif len(l_guids_data_ok) == 2: # for subjects with a parent-child layout
+        d3 = epc_cli.search_metadata_file_upload_by_guid(t, config_data, l_guids_data_ok[0])
+        target_guid = l_guids_data_ok[0] if any(item.get("uploadGuid") for item in d3.get("data") or []) else l_guids_data_ok[1]
+        print(f"    GUID to trigger epidemiological validation and track the status of the submission: {target_guid}")
+        print()
+    else:
+        print("ERROR: I do not know how to handle this condition (more than two guids)")
+        sys.exit(6)
+
     # technical validation
     b = epc_cli.start_tech_validation(token, config_data, l_guids_data_ok)
     print()
     technicalValidationJobGroupGuid=None
     j=0
     while(j<=max_attempts):
-        s = epc_cli.get_upload_timeline(token, config_data, l_guids_data_ok[0])
+        s = epc_cli.get_upload_timeline(token, config_data, target_guid)
         #print("    Attempt: {}".format(j+1))
         print()
-        if (len(s["timeLineSteps"]) > 0) and (s["timeLineSteps"][-1]["uploadState"] == "Tech validation successful"):
+        if (len(s["timeLineSteps"]) > 0) and (s["timeLineSteps"][-1]["uploadState"] in ["Tech validation successful", "Tech validation failed"]):
             technicalValidationJobGroupGuid=s["technicalValidationJobGroupGuid"]
             break
         if j > max_attempts:
@@ -112,8 +130,11 @@ def csv_upload_step(token, config_data, path_to_csv, upload_type, rp_start, rp_e
         j+=1
     if technicalValidationJobGroupGuid:
         # getting the technical validation report
-        epc_cli.get_csv_tech_validation(token, config_data, technicalValidationJobGroupGuid, f"{config_data["outputs"]["submission_data"]}/submissions/{l_guids_data_ok[0]}/technical_validation_report.csv")
-    return(l_guids_data_ok[0])
+        epc_cli.get_csv_tech_validation(token, config_data, technicalValidationJobGroupGuid, f"{config_data["outputs"]["submission_data"]}/submissions/{target_guid}/technical_validation_report.csv")
+        if s["timeLineSteps"][-1]["uploadState"] == "Tech validation failed":
+            sys.exit(21)
+    
+    return(target_guid)
 
 
 config_data = epc_cli.load_config(args.config)
@@ -193,6 +214,8 @@ def iso_validation_step(token, config_data, guid, my_regex, subject_code):
             break
 
 
+z_archive = None
+
 # case 1: only epidemiological data
 if csv_xml and (not seq_data):
 
@@ -206,9 +229,15 @@ if csv_xml and (not seq_data):
     t = epc_cli.request_token(config_data)
     print()
 
+    if args.parent_child and len(csv_xml) == 2:
+        z_archive = epc_cli.zip_files(csv_xml)
+        print()
+        csv_xml = [z_archive]
+
+    
     # each file is a different submission
     for f in csv_xml:
-        
+    
         csv_guid = csv_upload_step(t, config_data, f, args.upload_type, args.rp_start, args.rp_end)
         print()
         
@@ -220,6 +249,7 @@ if csv_xml and (not seq_data):
             print(f"    action: Approve")
             print(f"    isSuccessful: {ndata["isSuccessful"]}")
             print(f"    taskCorrelationGuid: {ndata["taskCorrelationGuid"]}")
+
                     
 # case 2: epidemiological and sequencing data
 elif csv_xml and seq_data:
@@ -234,12 +264,19 @@ elif csv_xml and seq_data:
         #print(" - If the reporting period spans from the first to the last reported case, you can use the --rp_autodetect option instead.")
         sys.exit(2)
 
-    if len(csv_xml) != 1:
-        print("ERROR: for now I can handle only one csv/xml at the time in combination with sequencing data")
+    elif len(csv_xml) > 2:
+        print("ERROR: for now I can handle only one csv/xml at the time or two in case of a subject with a parent-child layout for submissions with sequencing data")
+        sys.exit(20)
 
     t = epc_cli.request_token(config_data)
     print()
 
+    # if there are two csv|xml files, I assume they follow a parent-child layout
+    if len(csv_xml) == 2:
+        z_archive = epc_cli.zip_files(csv_xml)
+        print()
+        csv_xml = [z_archive]
+    
     csv_guid = csv_upload_step(t, config_data, csv_xml[0], args.upload_type, args.rp_start, args.rp_end)
     print()
 
@@ -247,7 +284,7 @@ elif csv_xml and seq_data:
         a = epc_cli.get_s3_presigned_url(t, config_data, args.subject, args.country_code, fa)
         print()
         #print("pre-signed url: {}".format(a['fileName']))
-        epc_cli.upload_with_presigned_url(fa, a['fileName'])
+        epc_cli.upload_with_presigned_url(config_data, fa, a['fileName'])
         print()
 
     iso_validation_step(t, config_data, csv_guid, args.regex, args.subject)
@@ -265,3 +302,8 @@ elif csv_xml and seq_data:
 else:
     print("ERROR: Unexpected combination of input files")
 
+# I remove the zip archive
+if z_archive and os.path.isfile(z_archive):
+    os.remove(z_archive)
+    print()
+    print(f"Temporary zip archive {z_archive} correctly removed")

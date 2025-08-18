@@ -56,6 +56,6 @@ for f in expanded_files:
     a = epc_cli.get_s3_presigned_url(t, config_data, args.subject, args.country_code, f)
     print()
     #print("pre-signed url: {}".format(a['fileName']))
-    epc_cli.upload_with_presigned_url(f, a['fileName'], chunk_size)
+    epc_cli.upload_with_presigned_url(config_data, f, a['fileName'], chunk_size)
     print()
 

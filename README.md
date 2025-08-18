@@ -38,6 +38,7 @@ Notes:
 - the upload type string is case sensitive. "Add/Update" works, "add/update" does not.
 - By default, epc_automatic_submission looks for a config.json file in the current directory. If you have set up and intend to use this file, there is no need to specify it explicitly with the -c/--config option. However, if you prefer to use a different configuration file, you can specify it using the -c/--config option, as shown in this example.
 - The technical validation and epidemiological validation reports will be saved on `{submission_data}/submissions/{guid}/`. The default submission_data folder is the current directory (`./`).
+- If your subject follows a parent-child data model, please read the sub-section "Subjects with a parent-child layout" (see below)
 
 In this example, we did not run epc_automatic_submission with the --approve flag. This flag automatically approves a data submission once it successfully completes all the steps in the workflow, providing full automation of the submission process. While using this flag fully automates the submission, it is highly recommended to review the epidemiological validation report before approving or rejecting the submission.
 
@@ -55,6 +56,38 @@ If you wish to reject the data submisson, you can do so with the following comma
 ```
 ./bin/epc_finalise_submission -c config-uat-HD-FR.json --epi_validation_guid 4c847b0c-fc33-4f2e-b4f1-2566f566a754 --action Reject --reject_reason 'this is only a test'
 ```
+
+#### Subjects with a parent-child layout
+Some subjects use a parent-child data model, where multiple interrelated files are required to represent a complete record submission. An example is SALMISO, where one file specifies the main information of the isolates (e.g. date and place of sampling, typing data), while a second file contains the antimicrobial resistance data linked to those isolates.
+
+The submission process differs only slightly from standard submissions. In this specific case we 
+```
+./bin/epc_automatic_submission -c data/config-uat.json --upload_type "Add/Update" -f data/1.SALMISO_myupload.csv data/2.SALMISO_myupload_AST.csv --subject SALMISO --country_code NL --parent_child --rp_start 2022-04-13 --rp_end 2022-
+09-10
+```
+
+Notes: 
+- You need to specify the `--parent_child` flag; otherwise the provided files you provide will be treated as independend submissions
+- Exactly two (csv|xml) files must be provided per execution of `epc_automatic_submission`. Submitting more than two files at once (e.g., four or six files) is not supported at this stage. 
+- The file with the main information on the records ("parent") must start with `1.`, while the one with additional information ("child") must start with a `2.`  
+
+In this example, we did not run epc_automatic_submission with the --approve flag. This flag automatically approves a data submission once it successfully completes all the steps in the workflow, providing full automation of the submission process. While using this flag fully automates the submission, it is highly recommended to review the epidemiological validation report before approving or rejecting the submission.
+
+The epidemiological validation report can be found on `{submission_data}/submissions/{guid}/`. 
+
+If you now wish to approve the data submission, you can do so with the following command:
+```
+./bin/epc_finalise_submission -c data/config-uat.json --epi_validation_guid 95b955c3-bc54-4f6b-b521-7cb704504a31 --action Approve
+```
+
+Notes:
+- you will find the epi_validation_guid in the output of epc_automatic_submission 
+
+If you wish to reject the data submisson, you can do so with the following command:
+```
+./bin/epc_finalise_submission -c config-uat.json --epi_validation_guid 95b955c3-bc54-4f6b-b521-7cb704504a31 --action Reject --reject_reason 'this is only a test'
+```
+
 
 ### WGS data (ISO subjects)
 
@@ -92,6 +125,40 @@ If you wish to reject the data submisson, you can do so with the following comma
 ```
 ./bin/epc_finalise_submission -c config-uat-HD-FR.json --epi_validation_guid 4c847b0c-fc33-4f2e-b4f1-2566f566a754 --action Reject --reject_reason 'this is only a test'
 ```
+
+#### Subjects with a parent-child layout
+Some subjects use a parent-child data model, where multiple interrelated files (csv, xml) are required to represent a complete record submission. An example is SALMISO, where one file specifies the main information of the isolates (e.g. date and place of sampling, typing data), while a second file contains the antimicrobial resistance data linked to those isolates.
+
+In this case you need to submit two csv or xml files as well as the fastq or fasta files with the sequencing data.
+
+The submission process differs only slightly from standard submissions.  
+```
+./bin/epc_automatic_submission -c data/config-uat.json --upload_type "Add/Update" -f data/1.SALMISO_myupload.csv data/2.SALMISO_myupload_AST.csv data/28382022* data/11402022* --subject SALMISO --country_code NL --parent_child --rp_start 2022-04-13 --rp_end 2022-
+09-10
+```
+
+Notes: 
+- You need to specify the `--parent_child` flag; otherwise the provided files you provide will be treated as independend submissions
+- Exactly two (csv|xml) files must be provided per execution of `epc_automatic_submission`. Submitting more than two files at once (e.g., four or six files) is not supported at this stage. 
+- The file with the main information on the records ("parent") must start with `1.`, while the one with additional information ("child") must start with a `2.`  
+
+In this example, we did not run epc_automatic_submission with the --approve flag. This flag automatically approves a data submission once it successfully completes all the steps in the workflow, providing full automation of the submission process. While using this flag fully automates the submission, it is highly recommended to review the epidemiological validation report before approving or rejecting the submission.
+
+The epidemiological validation report can be found on `{submission_data}/submissions/{guid}/`. 
+
+If you now wish to approve the data submission, you can do so with the following command:
+```
+./bin/epc_finalise_submission -c data/config-uat.json --epi_validation_guid 95b955c3-bc54-4f6b-b521-7cb704504a31 --action Approve
+```
+
+Notes:
+- you will find the epi_validation_guid in the output of epc_automatic_submission 
+
+If you wish to reject the data submisson, you can do so with the following command:
+```
+./bin/epc_finalise_submission -c config-uat.json --epi_validation_guid 95b955c3-bc54-4f6b-b521-7cb704504a31 --action Reject --reject_reason 'this is only a test'
+```
+
 
 ### Advanced usage
 
@@ -136,6 +203,9 @@ docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g)
 ```
 
 ## Changelog
+0.5.0
+- support for subjects with a parent-child layout
+
 0.4.1
 - [fix] SSL verification is now enabled (previously verify = False)  
 

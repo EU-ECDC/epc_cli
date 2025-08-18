@@ -10,6 +10,65 @@ import pandas as pd
 import logging
 import base64
 import certifi
+import uuid
+import zipfile
+
+def zip_files(file_list):
+    if len(file_list) != 2:
+        raise ValueError("ERROR: Exactly two files must be provided.")
+
+    basenames = [os.path.basename(f) for f in file_list]
+
+    # Check that one starts with 1. and the other with 2.
+    if not (any(name.startswith("1.") for name in basenames) and 
+            any(name.startswith("2.") for name in basenames)):
+        raise ValueError("ERROR: Files must be named starting with '1.' (parent) and '2.' (child) respectively.")
+
+    random_name = f"{uuid.uuid4().hex}.zip"
+    output_zip_path = os.path.join(".", random_name)
+
+    logging.info(f"Generating temporary zip archive {output_zip_path}")
+
+    with zipfile.ZipFile(output_zip_path, 'w') as zipf:
+        for file_path in file_list:
+            if os.path.isfile(file_path):
+                zipf.write(file_path, arcname=os.path.basename(file_path))
+            else:
+                raise FileNotFoundError(f"ERROR: {file_path} does not exist or is not a file.")
+
+    return output_zip_path
+
+def search_metadata_file_upload_by_guid(token, config_data, upload_guid):
+
+    logging.info(f"Retrieving file upload metadata for GUID {upload_guid}")
+
+    endpoint = config_data["env"]["base_url_endpoint"] + "/api/v1/DataUploadAPI/Uploads/SearchData"
+    headers = {
+        "Authorization": f"Bearer {token}",
+    }
+    payload = {
+        "skip": 0,
+        "take": 10,
+        "requireTotalCount": False,
+        "filter": [["uploadGuid", "=", upload_guid]],
+        "onlySubmittedByMe": True
+    }
+
+    params = {k: json.dumps(v) if isinstance(v, (list, dict, bool)) else v
+              for k, v in payload.items()}
+
+    response = requests.get(endpoint, headers=headers, params=params, verify=certifi.where())
+
+    if response.status_code == 200:
+        try:
+            return response.json()
+        except Exception as e:
+            logging.error("Could not parse JSON from response")
+            logging.error(response.text)
+            raise e
+    else:
+        raise Exception(f"status_code:{response.status_code}; response:{response.text}")
+
 
 
 def get_all_wgs_subjects(token, config_data):
@@ -92,7 +151,7 @@ def upload_csv_tech_validation(token, config_data, csv_file, upload_type, rp_sta
 
 def upload_csv(token, config_data, csv_file, upload_type, rp_start = None, rp_end = None):
     
-    logging.info(f"Uploading csv")
+    logging.info(f"Uploading files(s)")
     print(f"    Filename: {csv_file}")
     # reading the csv file
     if os.path.isfile(csv_file):
@@ -164,7 +223,7 @@ def get_upload_save_status(token, config_data, d_guids):
     if response.status_code == 200:
         try:
             upload_msg = response.json()
-            print("    GUIDs: {}".format(",".join(upload_msg)))
+            print("    GUIDs: [{}]".format(",".join(upload_msg)))
             return upload_msg
         except:
             print("[ERROR] I could not parse the response")
@@ -230,6 +289,7 @@ def get_upload_timeline(token, config_data, upload_guid):
     if response.status_code == 200:
         try:
             upload_msg = response.json()
+            #print(upload_msg)
             if len(upload_msg["timeLineSteps"]) > 0:
                 print("    uploadState: {}".format(upload_msg["timeLineSteps"][-1]["uploadState"]))
             else:
@@ -257,6 +317,7 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
     if response.status_code == 200:
         try:
             s3_url_data = response.json()
+            #print(s3_url_data)
             if "fileName" in s3_url_data:
                 print("    fileName: [...]{}".format(s3_url_data["fileName"][-10:]))
             return s3_url_data
@@ -267,11 +328,16 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
         raise Exception(f"status_code:{response.status_code}; reponse:{response.text}")
 
 
-def upload_with_presigned_url(file_path, presigned_url, chunk_size=1048576):
+def upload_with_presigned_url(config_data, file_path, presigned_url, chunk_size=1048576):
     logging.info(f"File upload - {file_path}")
+    headers = {
+        "x-amz-meta-uploadedby": config_data["credentials"]["username"].upper()
+
+    }
+
     """
     Upload a file to an S3 bucket using a pre-signed URL with a progress bar.
-    
+
     :param file_path: Path to the file to upload.
     :param presigned_url: Pre-signed URL for the S3 object.
     :param chunk_size: the file will be uploaded in chunks. This sets the chunk size (default: 1MB)
@@ -280,7 +346,7 @@ def upload_with_presigned_url(file_path, presigned_url, chunk_size=1048576):
         # Get the file size to use for the progress bar
         file_size = len(file.read())
         file.seek(0)  # Reset the file pointer to the beginning
-        
+
         # Initialize the progress bar
         with tqdm(total=file_size, unit='B', unit_scale=True, desc='    Status') as pbar:
             def upload_chunk(size=chunk_size):
@@ -291,7 +357,7 @@ def upload_with_presigned_url(file_path, presigned_url, chunk_size=1048576):
                     chunk = file.read(size)
                     if not chunk:
                         break
-                    response = requests.put(presigned_url, data=chunk)
+                    response = requests.put( presigned_url, data=chunk, headers=headers, verify=certifi.where())
                     pbar.update(len(chunk))  # Update the progress bar
                     if response.status_code != 200:
                         raise Exception(f"Failed to upload file. Status code: {response.status_code}, Response: {response.text}")
@@ -378,6 +444,45 @@ def get_status_ISO_validation(token, config_data, upload_guid):
             print(response.text)
     else:
         raise Exception(f"status_code:{response.status_code}; reponse:{response.text}")
+
+
+def search_uploads(token, config_data, skip=0, take=10, filters=None, sort=None, only_submitted_by_me=False):
+    logging.info("Searching uploads")
+
+    endpoint = config_data["env"]["base_url_endpoint"] + "/api/v1/DataUploadAPI/Uploads/SearchData"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    # Prepare payload according to DevExtreme LoadOptions spec
+    payload = {
+        "skip": skip,
+        "take": take,
+        "requireTotalCount": True,
+        "onlySubmittedByMe": only_submitted_by_me
+    }
+
+    if filters:
+        payload["filter"] = filters
+    if sort:
+        payload["sort"] = sort
+
+    # For GET, we'll URL-encode the JSON payload
+    params = {k: json.dumps(v) if isinstance(v, (list, dict, bool)) else v for k, v in payload.items()}
+
+    response = requests.get(endpoint, headers=headers, params=params, verify=certifi.where())
+
+    if response.status_code == 200:
+        try:
+            return response.json()
+        except Exception:
+            logging.error("Could not parse JSON response")
+            logging.debug(response.text)
+            return None
+    else:
+        raise Exception(f"status_code:{response.status_code}; response:{response.text}")
+
 
 def start_epidemiological_validation(token, config_data, upload_guid):
     logging.info("Starting epidemiological validation")
