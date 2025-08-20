@@ -3,10 +3,7 @@
 ## Installation
 You first need to clone the git repository and create the epc_cli conda environment:
 ```
-git clone https://github.com/ejfresch/epc_cli.git
-
-# For ECDC staff: you can use the devops repository
-# git clone https://EU-ECDC@dev.azure.com/EU-ECDC/Bioinformatics/_git/epc_cli
+git clone https://github.com/orgs/EU-ECDC/epc_cli
 
 cd epc_cli/
 mamba env create -f env/epc_cli.yaml 
@@ -186,25 +183,29 @@ docker build . -f docker/Dockerfile_epc_cli.prod --tag [your_namespace]/epc_cli:
 ```
 For instance, in our case this is:
 ```
-docker build . -f docker/Dockerfile_epc_cli.prod --tag ejfresch/epc_cli:0.5.1 --no-cache
+docker build . -f docker/Dockerfile_epc_cli.prod --tag ejfresch/epc_cli:0.5.2 --no-cache
 ```
 
 
 Then you can execute the commands described in the 'Usage' section, using the following syntax:
 ```
-docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.5.1 [my_command]
+docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.5.2 [my_command]
 ```
 Note: please remember to change the tag according to your namespace and the version of epc_cli you are using
 
 For instance, if you want to submit a csv file with case data, you should type
 ```
-docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.5.1 epc_automatic_submission --config config-uat-HD-FR.json --upload_type "Add/Update" --files dataset/epc_Deng_tessy_2025_20240523_v1.csv --rp_start 2025-01-01 --rp_end 2025-03-27
+docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.5.2 epc_automatic_submission --config config-uat-HD-FR.json --upload_type "Add/Update" --files dataset/epc_Deng_tessy_2025_20240523_v1.csv --rp_start 2025-01-01 --rp_end 2025-03-27
 ```
 
 ## Changelog
+0.5.2
+- added licence information (EUPL 1.2)
+- README file updated (installation instructions)
+
 0.5.1
-- Minor changes to README and Dockerfile
 - [fix] SSL verification enabled for request_token()
+- minor changes to README and Dockerfile
 
 0.5.0
 - support for subjects with a parent-child layout
