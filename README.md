@@ -203,7 +203,8 @@ docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g)
 
 ## Changelog
 0.5.1
-- README and Dockerfile updated
+- Minor changes to README and Dockerfile
+- [fix] SSL verification enabled for request_token()
 
 0.5.0
 - support for subjects with a parent-child layout

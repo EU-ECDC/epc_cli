@@ -5,6 +5,7 @@ import sys
 import logging
 import os
 import json
+import certifi
 
 def load_config(json_config):
     config = None
@@ -28,7 +29,7 @@ def request_token(config_data):
         "resource": config_data["env"]["resource"],
         "scope": "openid"
     }
-    response = requests.post(config_data["env"]["authentication_url"], data = request_payload, verify=False)
+    response = requests.post(config_data["env"]["authentication_url"], data = request_payload, verify = certifi.where())
     if response.status_code == 200:
         try:
             token = response.json().get("access_token")
