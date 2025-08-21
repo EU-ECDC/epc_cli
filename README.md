@@ -3,7 +3,7 @@
 ## Installation
 You first need to clone the git repository and create the epc_cli conda environment:
 ```
-git clone https://github.com/orgs/EU-ECDC/epc_cli
+git clone https://github.com/EU-ECDC/epc_cli
 
 cd epc_cli/
 mamba env create -f env/epc_cli.yaml 
