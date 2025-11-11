@@ -6,6 +6,7 @@ import logging
 import os
 import json
 import certifi
+import keyring
 
 def load_config(json_config):
     config = None
@@ -22,14 +23,15 @@ def request_token(config_data):
     token = ""
     request_payload = {
         "grant_type": "password",
-        "client_id": config_data["credentials"]["client_id"],
-        "client_secret": config_data["credentials"]["client_secret"],
         "username": config_data["credentials"]["username"],
-        "password": config_data["credentials"]["password"],
+        "password": keyring.get_password(config_data["credentials"]["password"], config_data["credentials"]["username"]),
+        "client_id": keyring.get_password(config_data["credentials"]["client_id"], config_data["credentials"]["username"]),
+        "client_secret": keyring.get_password(config_data["credentials"]["client_secret"], config_data["credentials"]["username"]),
         "resource": config_data["env"]["resource"],
         "scope": "openid"
     }
     response = requests.post(config_data["env"]["authentication_url"], data = request_payload, verify = certifi.where())
+
     if response.status_code == 200:
         try:
             token = response.json().get("access_token")
@@ -41,5 +43,4 @@ def request_token(config_data):
     if token == "":
         sys.exit()
     else:
-        print("    token: {}[...]".format(token[:10]))        
         return token

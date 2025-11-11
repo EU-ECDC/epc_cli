@@ -13,6 +13,16 @@ Then you need to set up your configuration file (config.json) by adding your cre
 
 Note: Some users might need to set up use multiple configuration files to account for for different roles, subjects and/or environments. 
 
+## Configure credentials
+Before use, you need to store your credentials. This is by default done using the keyring library.
+If you do not have a back-end installed for keyring, you can install an encrypted file backend using:
+git clone https://github.com/frispete/keyrings.cryptfile
+cd keyrings.cryptfile
+pip install -e .
+
+When you have a back-end available for keyring, configure your credentials using:
+./bin/epc_store_credentials
+
 ## Usage
 This software package provides both a single script, epc_automatic_submission, designated to automate the submission process as much as possible, as well as a set of scripts which allow users to go through the workflow step by step. In this section we will use epc_automatic_submission to submit data. 
 
@@ -199,6 +209,9 @@ docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g)
 ```
 
 ## Changelog
+0.5.3
+- Added functionality for securely storing your credentials
+
 0.5.2
 - added licence information (EUPL 1.2)
 - README file updated (installation instructions)
