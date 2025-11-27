@@ -1,4 +1,4 @@
-name: epc_cli11
+name: epc_cli
 channels:
   - conda-forge
 dependencies:
@@ -56,18 +56,4 @@ dependencies:
   - urllib3=2.5.0=pyhd8ed1ab_0
   - zstandard=0.25.0=py314h0f05182_1
   - zstd=1.5.7=hb8e6e7a_2
-  - pip:
-      - argon2-cffi==25.1.0
-      - argon2-cffi-bindings==25.1.0
-      - cryptography==46.0.3
-      - jaraco-classes==3.4.0
-      - jaraco-context==6.0.1
-      - jaraco-functools==4.3.0
-      - jeepney==0.9.0
-      - keyring==25.7.0
-      - keyrings-cryptfile==1.4.1
-      - more-itertools==10.8.0
-      - pycparser==2.23
-      - pycryptodome==3.23.0
-      - secretstorage==3.5.0
-prefix: /home/lfreschi/mambaforge/envs/epc_cli11
+ 
