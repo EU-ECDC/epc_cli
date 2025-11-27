@@ -130,7 +130,7 @@ def csv_upload_step(token, config_data, path_to_csv, upload_type, rp_start, rp_e
         j+=1
     if technicalValidationJobGroupGuid:
         # getting the technical validation report
-        epc_cli.get_csv_tech_validation(token, config_data, technicalValidationJobGroupGuid, f"{config_data["outputs"]["submission_data"]}/submissions/{target_guid}/technical_validation_report.csv")
+        epc_cli.get_csv_tech_validation(token, config_data, technicalValidationJobGroupGuid, f"{config_data['outputs']['submission_data']}/submissions/{target_guid}/technical_validation_report.csv")
         if s["timeLineSteps"][-1]["uploadState"] == "Tech validation failed":
             sys.exit(21)
     
@@ -166,7 +166,7 @@ def epidemiological_validation_step(token, config_data, guid):
             time.sleep(60)
             
         # getting the epidemiological validation report
-        epc_cli.get_epidemiological_validation_report(token, config_data, vdata["taskCorrelationGuid"], f"{config_data["outputs"]["submission_data"]}/submissions/{guid}/report.html")
+        epc_cli.get_epidemiological_validation_report(token, config_data, vdata['taskCorrelationGuid'], f"{config_data['outputs']['submission_data']}/submissions/{guid}/report.html")
         return(vdata["taskCorrelationGuid"])
     else:
         return(None)
@@ -242,13 +242,14 @@ if csv_xml and (not seq_data):
         print()
         
         epi_valid_guid = epidemiological_validation_step(t, config_data, csv_guid)
+        print()
 
         # if the user user the --approve flag I approve the submission
         if args.approve:
             ndata = epc_cli.approve_reject_submission(t, config_data, epi_valid_guid, "Approve")
             print(f"    action: Approve")
-            print(f"    isSuccessful: {ndata["isSuccessful"]}")
-            print(f"    taskCorrelationGuid: {ndata["taskCorrelationGuid"]}")
+            print(f"    isSuccessful: {ndata['isSuccessful']}")
+            print(f"    taskCorrelationGuid: {ndata['taskCorrelationGuid']}")
 
                     
 # case 2: epidemiological and sequencing data
@@ -291,13 +292,14 @@ elif csv_xml and seq_data:
     print()
 
     epi_valid_guid = epidemiological_validation_step(t, config_data, csv_guid)
+    print()
 
     # if the user user the --approve flag I approve the submission
     if args.approve:
         ndata = epc_cli.approve_reject_submission(t, config_data, epi_valid_guid, "Approve")
         print(f"    action: Approve")
-        print(f"    isSuccessful: {ndata["isSuccessful"]}")
-        print(f"    taskCorrelationGuid: {ndata["taskCorrelationGuid"]}")
+        print(f"    isSuccessful: {ndata['isSuccessful']}")
+        print(f"    taskCorrelationGuid: {ndata['taskCorrelationGuid']}")
 
 else:
     print("ERROR: Unexpected combination of input files")

@@ -21,12 +21,13 @@ def load_config(json_config):
 def request_token(config_data):
     logging.info("Requesting token")
     token = ""
+    env_name = config_data['env']['name']
     request_payload = {
         "grant_type": "password",
         "username": config_data["credentials"]["username"],
-        "password": keyring.get_password(config_data["credentials"]["password"], config_data["credentials"]["username"]),
-        "client_id": keyring.get_password(config_data["credentials"]["client_id"], config_data["credentials"]["username"]),
-        "client_secret": keyring.get_password(config_data["credentials"]["client_secret"], config_data["credentials"]["username"]),
+        "password": keyring.get_password(f"epc-cli_{env_name}_psswd", config_data["credentials"]["username"]),
+        "client_id": keyring.get_password(f"epc-cli_{env_name}_client-id", config_data["credentials"]["username"]),
+        #"client_secret": keyring.get_password(f"epc-cli_{env_name}_client-secret", config_data["credentials"]["username"]),
         "resource": config_data["env"]["resource"],
         "scope": "openid"
     }

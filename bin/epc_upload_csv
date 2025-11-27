@@ -120,7 +120,7 @@ for f in expanded_files:
         time.sleep(10)
         j+=1
     if technicalValidationJobGroupGuid:
-        epc_cli.get_csv_tech_validation(t, config, technicalValidationJobGroupGuid, f"{config["outputs"]["submission_data"]}/submissions/{l_guids_data_ok[0]}/technical_validation_report.csv")
+        epc_cli.get_csv_tech_validation(t, config, technicalValidationJobGroupGuid, f"{config['outputs']['submission_data']}/submissions/{l_guids_data_ok[0]}/technical_validation_report.csv")
         
 
 # I remove the zip archive

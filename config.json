@@ -1,16 +1,16 @@
 {
     "credentials" : {
-        "client_id": "",
-        "client_secret" : "",
-        "username": "",
-        "password": ""
-        
+        "username": ""
     },
     "env": {
         "name": "",
+        "country_code": "", 
         "authentication_url" : "",
         "base_url_endpoint": "",
         "resource": ""
+    },
+    "outputs": {
+        "submission_data": "." 
     }
 
 }

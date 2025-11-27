@@ -9,19 +9,25 @@ cd epc_cli/
 mamba env create -f env/epc_cli.yaml 
 ```
 
-Then you need to set up your configuration file (config.json) by adding your credentials, the urls of the resources that you will use to contact the API endpoints and optional customisations. 
+Then you need to set up your configuration file (config.json) by adding your username, country code, the urls of the resources that you will use to contact the API endpoints and other optional customisations. 
 
-Note: Some users might need to set up use multiple configuration files to account for for different roles, subjects and/or environments. 
+Note: Some users might need to set up use multiple configuration files to account for for different roles, subjects and/or environments. In such cases, make sure that the environment "name" variable in each configuration file is unique. 
 
-## Configure credentials
-Before use, you need to store your credentials. This is by default done using the keyring library.
-If you do not have a back-end installed for keyring, you can install an encrypted file backend using:
-git clone https://github.com/frispete/keyrings.cryptfile
-cd keyrings.cryptfile
+### Configuring credentials
+Before using epc_cli, you need to store your credentials in a secure way. epc_cli uses the keyring python library, which supports multiple keyring backends (e.g. Keychain, Windows Credentials Manager, KWallet). If you do not already have a functional back-end installed, you can install the keyrings.cryptfile backend as follows: 
+```
+git clone https://github.com/frispete/keyrings.cryptfile 
+cd keyrings.cryptfile 
 pip install -e .
+```
+Note: after installing the package, you can delete the keyrings.cryptfile folder
 
-When you have a back-end available for keyring, configure your credentials using:
-./bin/epc_store_credentials
+When you have a valid back-end available for keyring, you can configure your credentials with the following command:
+```
+./bin/epc_set_secrets
+```
+
+Note: using a keyring with encrpytion esures that your credentials are stored in a secure way. However, this means that you will need to provide a master password to unlock the keyring in every script that needs to access the secrets.  
 
 ## Usage
 This software package provides both a single script, epc_automatic_submission, designated to automate the submission process as much as possible, as well as a set of scripts which allow users to go through the workflow step by step. In this section we will use epc_automatic_submission to submit data. 
@@ -41,8 +47,8 @@ Then we can submit a csv file with case data:
 ```
 
 Notes: 
-- in case of submission of epidemiological data `--rp_start` and `--rp_end` MUST be defined. 
-- the upload type string is case sensitive. "Add/Update" works, "add/update" does not.
+- In case of submission of epidemiological data `--rp_start` and `--rp_end` MUST be defined. 
+- The upload type string is case sensitive. "Add/Update" works, "add/update" does not.
 - By default, epc_automatic_submission looks for a config.json file in the current directory. If you have set up and intend to use this file, there is no need to specify it explicitly with the -c/--config option. However, if you prefer to use a different configuration file, you can specify it using the -c/--config option, as shown in this example.
 - The technical validation and epidemiological validation reports will be saved on `{submission_data}/submissions/{guid}/`. The default submission_data folder is the current directory (`./`).
 - If your subject follows a parent-child data model, please read the sub-section "Subjects with a parent-child layout" (see below)
@@ -95,14 +101,14 @@ If you wish to reject the data submisson, you can do so with the following comma
 ```
 
 
-### WGS data (ISO subjects)
+### Sequence data (ISO subjects)
 
 Please remember to activate the conda environment:
 ```
 mamba activate epc_cli
 ```
 
-Then we can submit sequencing data and the csv with the associated metadata:
+Then we can submit sequence data and the csv with the isolate metadata:
 ```
 ./bin/epc_automatic_submission -c config-uat.json --upload_type "Add/Update" -f dataset/LEGIISO_metadata_submission-A10.csv dataset/*-test8.fastq.gz --subject LEGIISO --country_code NL --regex '^(?<RecordId>[A-Z0-9\-]+)_[A-Z0-9_a-z\-]+.(fastq|fq).gz$'
 ```
@@ -112,7 +118,6 @@ Notes:
 - Remember to put the regular expression on sigle quotes (as shown above). In case of a issues, you may want to check your regular expression [here](https://regex101.com/).
 - By default, epc_automatic_submission looks for a config.json file in the current directory. If you have set up and intend to use this file, there is no need to specify it explicitly with the -c/--config option. However, if you prefer to use a different configuration file, you can specify it using the -c/--config option, as shown in this example.
 - The technical validation and epidemiological validation reports will be saved on `{submission_data}/submissions/{guid}/`. The default submission_data folder is the current directory (`./`).
-
 
 
 In this example, we did not run epc_automatic_submission with the --approve flag. This flag automatically approves a data submission once it successfully completes all the steps in the workflow, providing full automation of the submission process. While using this flag fully automates the submission, it is highly recommended to review the epidemiological validation report before approving or rejecting the submission.
@@ -167,21 +172,59 @@ If you wish to reject the data submisson, you can do so with the following comma
 
 
 ### Advanced usage
+You can use this software package as a library to build your own scripts. The following example shows how to unlock the keyring (the user must interactively provide the keyring’s master password) and trigger two data submissions with automatic approval (equivalent to using the `--approve` option)
 
-You can use this software package as a library to build your own scripts.
-
-Here is an example that shows how you can get information on your user permissions: 
 ```
+#!/usr/bin/env python3
+
+import sys
+sys.path.insert(0, '.')
+import keyring
+from keyrings.cryptfile.cryptfile import CryptFileKeyring
+import getpass
 import epc_cli
-config_data = epc_cli.load_config("./config-uat.json")
-token = epc_cli.request_token(config_data)
+import glob
+import logging
 
-epc_cli.get_user_permissions(token, config_data)
-```
+# I define the format of the log messages
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
-which gives the following output:
-```
-{'hasEpipulseCasesPermission': True, 'hasWGSSubjectsPermission': True, 'hasUploadPermission': True, 'hasApprovePermission': True, 'hasAnyNonWGSUploadPermission': False, 'hasAnyWGSUploadPermission': True, 'hasAnyAllowWebEntryUploadPermission': False}
+# I activate the cryptfile backend for the keyring package
+kr = CryptFileKeyring()
+keyring.set_keyring(kr)
+
+# I unlock the keyring
+master_pwd = getpass.getpass("Please provide the master password of the keyring: ")
+kr.keyring_key = master_pwd
+
+# I load data of the configuration file 
+config_data = epc_cli.load_config("config-uat-HD-FR.json")
+
+# I make a data submission with epidemiological data
+logging.info(f"Submission 1")
+print()
+epc_cli.automate_submission(config_data = config_data,
+    subject = "DENGUE",
+    upload_type = "Add/Update",        
+    csv_xml = ["./epc_Deng_tessy_2025_20240523_v1.csv"],
+    rp_start = "2025-01-01", 
+    rp_end = "2025-03-27")
+
+# I make a data submission with sequencing data
+#logging.info(f"Submission 2")
+print()
+epc_cli.automate_submission(config_data = config_data,
+    subject = "LEGIISO",
+    upload_type = "Add/Update",        
+    csv_xml = ["./data/LEGIISO_metadata_submission-A14.csv"],
+    seq_data = glob.glob("data/*-test39.fastq.gz"),
+    regex = '^(?<RecordId>[A-Z0-9\-]+)_[A-Z0-9_a-z\-]+.(fastq|fq).gz$'
+ )
+
 ```
 
 #### epc_cli and Docker
@@ -193,24 +236,29 @@ docker build . -f docker/Dockerfile_epc_cli.prod --tag [your_namespace]/epc_cli:
 ```
 For instance, in our case this is:
 ```
-docker build . -f docker/Dockerfile_epc_cli.prod --tag ejfresch/epc_cli:0.5.2 --no-cache
+docker build . -f docker/Dockerfile_epc_cli.prod --tag ejfresch/epc_cli:0.7.0 --no-cache
 ```
 
 
 Then you can execute the commands described in the 'Usage' section, using the following syntax:
 ```
-docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.5.2 [my_command]
+docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.7.0 [my_command]
 ```
 Note: please remember to change the tag according to your namespace and the version of epc_cli you are using
 
 For instance, if you want to submit a csv file with case data, you should type
 ```
-docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.5.2 epc_automatic_submission --config config-uat-HD-FR.json --upload_type "Add/Update" --files dataset/epc_Deng_tessy_2025_20240523_v1.csv --rp_start 2025-01-01 --rp_end 2025-03-27
+docker run -it --rm --volume $(pwd):/tmp --workdir /tmp --user $(id -u):$(id -g) ejfresch/epc_cli:0.7.0 epc_automatic_submission --config config-uat-HD-FR.json --upload_type "Add/Update" --files dataset/epc_Deng_tessy_2025_20240523_v1.csv --rp_start 2025-01-01 --rp_end 2025-03-27
 ```
 
 ## Changelog
-0.5.3
-- Added functionality for securely storing your credentials
+0.7.0
+- added `automate_submission()` function to facilitate automated data submission in custom scripts 
+- README file updated (added a code snippet showing how to unlock the keyring and perform data submissions, and clarified terminology)
+- [fix] changed string quoting to avoid conflicts inside f-strings
+
+0.6.0
+- added functionality for securely storing your credentials
 
 0.5.2
 - added licence information (EUPL 1.2)
