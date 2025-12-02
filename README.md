@@ -230,7 +230,7 @@ epc_cli.automate_submission(config_data = config_data,
 - added `epc_d` daemon to automate token refresh (target: Unix systems)
 - changed configuration file format (application_data)
 - renamed epc_store_credentials -> epc_set_secrets
-- removed docker support
+- docker support temporarily removed
 
 0.7.0
 - added `automate_submission()` function to facilitate automated data submission in custom scripts 
