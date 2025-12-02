@@ -9,8 +9,6 @@
         "base_url_endpoint": "",
         "resource": ""
     },
-    "outputs": {
-        "submission_data": "." 
-    }
+    "application_data":"."
 
 }
