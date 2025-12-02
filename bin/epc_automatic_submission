@@ -130,7 +130,7 @@ def csv_upload_step(token, config_data, path_to_csv, upload_type, rp_start, rp_e
         j+=1
     if technicalValidationJobGroupGuid:
         # getting the technical validation report
-        epc_cli.get_csv_tech_validation(token, config_data, technicalValidationJobGroupGuid, f"{config_data['outputs']['submission_data']}/submissions/{target_guid}/technical_validation_report.csv")
+        epc_cli.get_csv_tech_validation(token, config_data, technicalValidationJobGroupGuid, f"{config_data['application_data']}/submissions/{target_guid}/technical_validation_report.csv")
         if s["timeLineSteps"][-1]["uploadState"] == "Tech validation failed":
             sys.exit(21)
     
@@ -166,7 +166,7 @@ def epidemiological_validation_step(token, config_data, guid):
             time.sleep(60)
             
         # getting the epidemiological validation report
-        epc_cli.get_epidemiological_validation_report(token, config_data, vdata['taskCorrelationGuid'], f"{config_data['outputs']['submission_data']}/submissions/{guid}/report.html")
+        epc_cli.get_epidemiological_validation_report(token, config_data, vdata['taskCorrelationGuid'], f"{config_data['application_data']}/submissions/{guid}/report.html")
         return(vdata["taskCorrelationGuid"])
     else:
         return(None)
@@ -226,7 +226,11 @@ if csv_xml and (not seq_data):
         #print(" - If the reporting period spans from the first to the last reported case, you can use the --rp_autodetect option instead.")
         sys.exit(2)
 
-    t = epc_cli.request_token(config_data)
+    t = None
+    if epc_cli.is_token_potentially_valid(config_data):
+        t = epc_cli.read_token(config_data)
+    else:
+        t = epc_cli.request_token(config_data)
     print()
 
     if args.parent_child and len(csv_xml) == 2:
@@ -269,7 +273,11 @@ elif csv_xml and seq_data:
         print("ERROR: for now I can handle only one csv/xml at the time or two in case of a subject with a parent-child layout for submissions with sequencing data")
         sys.exit(20)
 
-    t = epc_cli.request_token(config_data)
+    t = None
+    if epc_cli.is_token_potentially_valid(config_data):
+        t = epc_cli.read_token(config_data)
+    else:
+        t = epc_cli.request_token(config_data)
     print()
 
     # if there are two csv|xml files, I assume they follow a parent-child layout

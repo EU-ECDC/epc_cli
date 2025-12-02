@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='epc_cli',
-    version='0.4.0',
+    version='0.8.0',
     packages=find_packages(),  # automatically finds epc_cli and submodules
     install_requires=[],
      scripts=[
@@ -12,6 +12,8 @@ setup(
         'bin/epc_get_timeline',
         'bin/epc_iso_validation',
         'bin/epc_upload_csv',
-        'bin/epc_upload_seq_data'
+        'bin/epc_upload_seq_data',
+        'bin/epc_set_secrets',
+        'bin/epc_d'
     ],
 )

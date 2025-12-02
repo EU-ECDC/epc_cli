@@ -29,7 +29,11 @@ parser.add_argument("-r", "--reject_reason", type=str,
 args = parser.parse_args()
 
 config_data = epc_cli.load_config(args.config)
-t = epc_cli.request_token(config_data)
+t = None
+if epc_cli.is_token_potentially_valid(config_data):
+    t = epc_cli.read_token(config_data)
+else:
+    t = epc_cli.request_token(config_data)
 print()
 
 if args.action in ["Approve", "Reject"]:

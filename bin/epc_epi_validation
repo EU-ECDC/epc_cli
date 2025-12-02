@@ -30,7 +30,11 @@ max_attempts = 10
 
 config_data = epc_cli.load_config(args.config)
 
-t = epc_cli.request_token(config_data)
+t = None
+if epc_cli.is_token_potentially_valid(config_data):
+    t = epc_cli.read_token(config_data)
+else:
+    t = epc_cli.request_token(config_data)
 print()
 
 a = 1
@@ -59,7 +63,7 @@ if (tl['timeLineSteps'][-1]["statusDescription"] == "ISO file validation success
                 sys.exit()
             a = a + 1
             time.sleep(60)
-        epc_cli.get_epidemiological_validation_report(t, config_data, vdata['taskCorrelationGuid'], f"{config_data['outputs']['submission_data']}/submissions/{args.guid}/report.html")
+        epc_cli.get_epidemiological_validation_report(t, config_data, vdata['taskCorrelationGuid'], f"{config_data['application_data']}/submissions/{args.guid}/report.html")
 
 else:
     raise Exception("ERROR: You are in a state where you should not trigger an epidemiological validation")

@@ -1,4 +1,4 @@
-name: epc_cli
+name: epc_cli2
 channels:
   - conda-forge
 dependencies:
@@ -35,6 +35,7 @@ dependencies:
   - libstdcxx-ng=15.2.0=hdf11a46_13
   - libuuid=2.41.2=he9a06e4_0
   - libzlib=1.3.1=hb9d3cd8_2
+  - lockfile=0.12.2=py_1
   - ncurses=6.5=h2d0b736_3
   - numpy=2.3.5=py314h2b28147_0
   - openssl=3.6.0=h26f9b46_0
@@ -42,6 +43,7 @@ dependencies:
   - pip=25.3=pyh145f28c_0
   - pysocks=1.7.1=pyha55dd90_7
   - python=3.14.0=h32b2ec7_102_cp314
+  - python-daemon=3.1.2=pyhff2d567_0
   - python-dateutil=2.9.0.post0=pyhe01879c_2
   - python-tzdata=2025.2=pyhd8ed1ab_0
   - python_abi=3.14=8_cp314
@@ -56,4 +58,7 @@ dependencies:
   - urllib3=2.5.0=pyhd8ed1ab_0
   - zstandard=0.25.0=py314h0f05182_1
   - zstd=1.5.7=hb8e6e7a_2
- 
+  - pip:
+      - keyrings-cryptfile==1.3.9
+      - timelength==3.0.2
+
