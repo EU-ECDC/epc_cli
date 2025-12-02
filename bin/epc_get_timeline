@@ -31,7 +31,11 @@ args = parser.parse_args()
 max_attempts = 5
 
 config_data = epc_cli.load_config(args.config)
-t = epc_cli.request_token(config_data)
+t = None
+if epc_cli.is_token_potentially_valid(config_data):
+    t = epc_cli.read_token(config_data)
+else:
+    t = epc_cli.request_token(config_data)
 print()
 
 c = epc_cli.get_upload_timeline(t, config_data, args.guid)

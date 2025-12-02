@@ -7,6 +7,9 @@ import os
 import json
 import certifi
 import keyring
+from keyrings.cryptfile.cryptfile import CryptFileKeyring
+import time
+
 
 def load_config(json_config):
     config = None
@@ -18,15 +21,47 @@ def load_config(json_config):
     else:
         raise Exception(f"{json_config} not found")
 
+
+def is_token_potentially_valid(config_data):
+    TOKEN_MAX_AGE = 3000  # seconds 
+    token_potentially_valid = False
+    if not os.path.isfile(f"{config_data['application_data']}/token.json"):
+        logging.debug(f"{config_data['application_data']}/token.json does not exist")
+        return(False)
+    now = time.time()
+    mtime = os.path.getmtime(f"{config_data['application_data']}/token.json")
+    if now - mtime < TOKEN_MAX_AGE:
+        token_potentially_valid = True         
+    return(token_potentially_valid)
+
+
+def read_token(config_data):
+    token = None
+    token_file = f"{config_data['application_data']}/token.json"
+    with open(token_file, "r") as f:
+        try:
+            data_p = json.load(f)
+            return(data_p.get("epc_token"))
+        except json.JSONDecodeError:
+            logging.error("Could not decode JSON in the token file.")
+        except FileNotFoundError:
+            logging.warning(f"Token file not found: {config_data['application_data']}/token.json")
+        except Exception as e:
+            logging.error(f"Unexpected error reading token file: {e}")
+    return(token)
+
+
 def request_token(config_data):
     logging.info("Requesting token")
     token = ""
-    request_payload = {
+    env_name = config_data['env']['name']
+
+    request_payload = { 
         "grant_type": "password",
         "username": config_data["credentials"]["username"],
-        "password": keyring.get_password(config_data["credentials"]["password"], config_data["credentials"]["username"]),
-        "client_id": keyring.get_password(config_data["credentials"]["client_id"], config_data["credentials"]["username"]),
-        "client_secret": keyring.get_password(config_data["credentials"]["client_secret"], config_data["credentials"]["username"]),
+        "password": keyring.get_password(f"epc-cli_{env_name}_psswd", config_data["credentials"]["username"]),
+        "client_id": keyring.get_password(f"epc-cli_{env_name}_client-id", config_data["credentials"]["username"]),
+        #"client_secret": keyring.get_password(f"epc-cli_{env_name}_client-secret", config_data["credentials"]["username"]),
         "resource": config_data["env"]["resource"],
         "scope": "openid"
     }
@@ -36,10 +71,10 @@ def request_token(config_data):
         try:
             token = response.json().get("access_token")
         except:
-            print(f"{response.status_code} | {response.text}")
-            print("ERROR: I was not able to parse the response")
+            logging.debug(f"{response.status_code} | {response.text}")
+            logging.error("I was not able to parse the response")
     else:
-        print(f"{response.status_code} | {response.text}")
+        logging.debug(f"{response.status_code} | {response.text}")
     if token == "":
         sys.exit()
     else:

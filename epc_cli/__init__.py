@@ -1,6 +1,7 @@
-from .auth import *  # Import everything from auth.py
-from .core import *  # Import everything from core.py
-from .utils import *  # Import everything from core.py
+from .auth import *
+from .core import * 
+from .utils import *  
+from .automate import *  
 
 __all__ = [  # List all functions I want to expose
     "load_config"

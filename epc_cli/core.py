@@ -115,7 +115,7 @@ def upload_csv_tech_validation(token, config_data, csv_file, upload_type, rp_sta
 
     # request to upload the file
     basename_csv = os.path.basename(csv_file)
-    x_file_identifier = f"{basename_csv.replace(".", "")}-{len(csv_data)}-{datetime.now().isoformat().split("T")[0].replace("-", "")}"
+    x_file_identifier = f"{basename_csv.replace('.', '')}-{len(csv_data)}-{datetime.now().isoformat().split('T')[0].replace('-', '')}"
     print(x_file_identifier)
     headers = {
         "Authorization": "Bearer {}".format(token),
@@ -163,7 +163,7 @@ def upload_csv(token, config_data, csv_file, upload_type, rp_start = None, rp_en
 
     # request to upload the file
     basename_csv = os.path.basename(csv_file)
-    x_file_identifier = f"{basename_csv.replace(".", "")}-{len(csv_data)}-{datetime.now().isoformat().split("T")[0].replace("-", "")}"
+    x_file_identifier = f"{basename_csv.replace('.', '')}-{len(csv_data)}-{datetime.now().isoformat().split('T')[0].replace('-', '')}"
     #print(x_file_identifier)
 
     ignore_date_start_end = True

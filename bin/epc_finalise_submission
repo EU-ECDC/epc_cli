@@ -29,20 +29,24 @@ parser.add_argument("-r", "--reject_reason", type=str,
 args = parser.parse_args()
 
 config_data = epc_cli.load_config(args.config)
-t = epc_cli.request_token(config_data)
+t = None
+if epc_cli.is_token_potentially_valid(config_data):
+    t = epc_cli.read_token(config_data)
+else:
+    t = epc_cli.request_token(config_data)
 print()
 
 if args.action in ["Approve", "Reject"]:
     if args.reject_reason:
         ydata = epc_cli.approve_reject_submission(t, config_data, args.epi_validation_guid, args.action, args.reject_reason)
         print(f"    action: {args.action}")
-        print(f"    isSuccessful: {ydata["isSuccessful"]}")
-        print(f"    taskCorrelationGuid: {ydata["taskCorrelationGuid"]}")
+        print(f"    isSuccessful: {ydata['isSuccessful']}")
+        print(f"    taskCorrelationGuid: {ydata['taskCorrelationGuid']}")
     else:
         ndata = epc_cli.approve_reject_submission(t, config_data, args.epi_validation_guid, args.action)
         print(f"    action: {args.action}")
-        print(f"    isSuccessful: {ndata["isSuccessful"]}")
-        print(f"    taskCorrelationGuid: {ndata["taskCorrelationGuid"]}")
+        print(f"    isSuccessful: {ndata['isSuccessful']}")
+        print(f"    taskCorrelationGuid: {ndata['taskCorrelationGuid']}")
 else:
     print("ERROR: Invalid action")
 
