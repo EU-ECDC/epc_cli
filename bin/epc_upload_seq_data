@@ -49,6 +49,7 @@ t = None
 if epc_cli.is_token_potentially_valid(config_data):
     t = epc_cli.read_token(config_data)
 else:
+    epc_cli.set_cryptfile_keyring(config_data["env"]["kr_path"])
     t = epc_cli.request_token(config_data)
 print()
 

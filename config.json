@@ -7,7 +7,8 @@
         "country_code": "", 
         "authentication_url" : "",
         "base_url_endpoint": "",
-        "resource": ""
+        "resource": "",
+        "kr_path":""
     },
     "application_data":"."
 

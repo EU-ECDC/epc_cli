@@ -21,15 +21,10 @@ parser.add_argument("-c", "--config",
                     type=str, 
                     help="path to configuration file",
                     required=True)
-parser.add_argument("-k", "--kr_path", 
-                    type=str, 
-                    help="path to the keyring")
 parser.add_argument("-m", "--max_runtime", 
                     type=str, 
                     help="Max runtime (e.g. 1h, 1.5d)",
                     default="inf")
-
-
 args = parser.parse_args()
 
 
@@ -79,18 +74,7 @@ file_handler = logging.FileHandler(log_file_path, mode="w")
 file_handler.setFormatter(LevelFormatter())
 logger.addHandler(file_handler)
 
-
-logging.info("Accesing the keyring")
-kr = CryptFileKeyring()
-# if args does not have a kr_path attr it returns None to "if"
-if getattr(args, "kr_path", None):
-    kr.file_path = args.kr_path
-logging.debug(f"Keyring path: {kr.file_path}\n")
-
-m_psswd = getpass.getpass(f"Please enter the master password of the keyring [{user_name}]: ")
-kr.keyring_key = m_psswd
-keyring.set_keyring(kr)
-logging.debug(f"Keyring unlocked\n")
+epc_cli.set_cryptfile_keyring(config_data['env']['kr_path'])
 
 logging.info(f"Starting refresh token loop")
 logger.setLevel(logging.WARNING)

@@ -29,9 +29,22 @@ epc_cli includes prebuilt scripts to simplify data submission.
 
 You can automate your data submissions using a single script (epc_automatic_submission) or a set of scripts which allow you to go through the workflow step by step. In this section we will use epc_automatic_submission to submit data. 
 
-Please note that epc_cli is also Python library that you can use to build custom scripts and automate workflows (see "Advanced usage"). 
+Finally, please note that epc_cli is also Python library that you can use to build custom scripts and automate workflows (see "Advanced usage"). 
 
-Note: an assumption in all commands shown in this guide is that the scripts are ran from the epc_cli directory. 
+### epc_d
+If you run the application only occasionally, you will be asked to provide the master password of your keyring every time the application token needs to be renewed (approximately every hour).
+If instead you need to perform multiple submissions throughout the day, or you want the application to automatically submit data as soon as they become available, you may want to use the epc_d daemon (Linux/macOS). With the daemon, you only need to enter the master password once; afterwards, the process runs in the background and automatically renews the application token using your credentials. To start the daemon:
+```
+./bin/epc_d -c config-uat-HD-FR.json
+```
+
+By default it runs indefinitely, You can limit its runtime using the -m option. For example:
+```
+./bin/epc_d -c config-uat-HD-FR.json -m 10h
+``
+Notes: 
+- If you no longer need to run epc_cli, please remember to manually stop the daemon by killing its process: `kill "$(cat epc_d.pid)"`. 
+- All commands in this guide assume the scripts are executed from the epc_cli directory.
 
 ### Epidemiological data
 
@@ -192,16 +205,11 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-# I activate the cryptfile backend for the keyring package
-kr = CryptFileKeyring()
-keyring.set_keyring(kr)
-
-# I unlock the keyring
-master_pwd = getpass.getpass("Please provide the master password of the keyring: ")
-kr.keyring_key = master_pwd
-
 # I load data of the configuration file 
 config_data = epc_cli.load_config("config-uat-HD-FR.json")
+
+# I unlock the keyring
+epc_cli.set_cryptfile_keyring(config_data['env']['kr_path'])
 
 # I make a data submission with epidemiological data
 logging.info(f"Submission 1")
@@ -226,6 +234,12 @@ epc_cli.automate_submission(config_data = config_data,
 ```
 
 ## Changelog
+0.9.0
+- updated token-request logic across all scripts and enforced the use of the keyrings.cryptfile backend
+- changed configuration file format (added `kr_path`) 
+- [fix] corrected typos in variable names in `bin/epc_upload_csv`
+- [fix] added missing files: `epc_cli/automate.py` and `bin/epc_d` 
+
 0.8.0
 - added `epc_d` daemon to automate token refresh (target: Unix systems)
 - changed configuration file format (application_data)
