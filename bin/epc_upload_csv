@@ -68,8 +68,8 @@ t = None
 if epc_cli.is_token_potentially_valid(config):
     t = epc_cli.read_token(config)
 else:
-    epc_cli.set_cryptfile_keyring(config_data["env"]["kr_path"])
-    t = epc_cli.request_token(config_data)
+    epc_cli.set_cryptfile_keyring(config["env"]["kr_path"])
+    t = epc_cli.request_token(config)
 print()
 
 z_archive = None
