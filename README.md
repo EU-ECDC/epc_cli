@@ -41,7 +41,7 @@ If instead you need to perform multiple submissions throughout the day, or you w
 By default it runs indefinitely, You can limit its runtime using the -m option. For example:
 ```
 ./bin/epc_d -c config-uat-HD-FR.json -m 10h
-``
+```
 Notes: 
 - If you no longer need to run epc_cli, please remember to manually stop the daemon by killing its process: `kill "$(cat epc_d.pid)"`. 
 - All commands in this guide assume the scripts are executed from the epc_cli directory.
@@ -234,6 +234,10 @@ epc_cli.automate_submission(config_data = config_data,
 ```
 
 ## Changelog
+0.9.1
+- [fix] fixed Markdown rendering issues in the README file
+- [fix] corrected typos in variable names in `bin/epc_upload_csv`
+
 0.9.0
 - updated token-request logic across all scripts and enforced the use of the keyrings.cryptfile backend
 - changed configuration file format (added `kr_path`) 
