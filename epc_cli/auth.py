@@ -9,6 +9,7 @@ import certifi
 import keyring
 from keyrings.cryptfile.cryptfile import CryptFileKeyring
 import time
+import getpass
 
 
 def load_config(json_config):
@@ -21,6 +22,17 @@ def load_config(json_config):
     else:
         raise Exception(f"{json_config} not found")
 
+
+def set_cryptfile_keyring(kr_path = None):
+    logging.info("Accesing the keyring")
+    kr = CryptFileKeyring()
+    if kr_path:
+        kr.file_path = kr_path
+    logging.debug(f"Keyring path: {kr.file_path}\n")
+    m_psswd = getpass.getpass(f"Please enter the master password of the keyring: ")
+    kr.keyring_key = m_psswd
+    keyring.set_keyring(kr)
+    logging.debug(f"Keyring unlocked\n")
 
 def is_token_potentially_valid(config_data):
     TOKEN_MAX_AGE = 3000  # seconds 

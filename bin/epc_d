@@ -1,0 +1,123 @@
+#!/usr/bin/env python
+
+import sys
+sys.path.insert(0, '.')
+import argparse
+import keyring
+import getpass
+import epc_cli
+import logging
+import logging
+import time
+from timelength import TimeLength
+import os
+from keyrings.cryptfile.cryptfile import CryptFileKeyring
+import json
+import daemon
+import daemon.pidfile
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--config", 
+                    type=str, 
+                    help="path to configuration file",
+                    required=True)
+parser.add_argument("-m", "--max_runtime", 
+                    type=str, 
+                    help="Max runtime (e.g. 1h, 1.5d)",
+                    default="inf")
+args = parser.parse_args()
+
+
+class LevelFormatter(logging.Formatter):
+    FORMATS = {
+        logging.DEBUG: "- %(message)s",
+        logging.INFO: "%(asctime)s INFO: %(message)s",
+        logging.WARNING: "WARNING: %(message)s",
+        logging.ERROR: "ERROR: %(message)s",
+        logging.CRITICAL: "CRITICAL: %(message)s"
+    }
+
+    def format(self, record):
+        fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
+        return formatter.format(record)
+    
+handler = logging.StreamHandler()
+handler.setFormatter(LevelFormatter())
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+logger.addHandler(handler)
+
+
+
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+
+max_runtime_s = None
+m_runtime = args.max_runtime.strip().lower()
+if m_runtime in ("inf"):
+    max_runtime_s = float("inf")
+else:
+    tl = TimeLength(args.max_runtime)
+    max_runtime_s = tl.result.seconds  # convert to seconds
+
+logging.info("Reading configuration file")
+config_data = epc_cli.load_config(args.config)
+user_name = config_data['credentials']['username']
+env_name = config_data['env']['name']
+log_file_path = os.path.abspath(os.path.expanduser(f"{config_data['application_data']}/logs/epc_d.log"))
+log_dir = os.path.dirname(log_file_path)
+if log_dir:
+    os.makedirs(log_dir, exist_ok=True)
+file_handler = logging.FileHandler(log_file_path, mode="w")
+file_handler.setFormatter(LevelFormatter())
+logger.addHandler(file_handler)
+
+epc_cli.set_cryptfile_keyring(config_data['env']['kr_path'])
+
+logging.info(f"Starting refresh token loop")
+logger.setLevel(logging.WARNING)
+
+def refresh_token_loop(config_data, max_runtime_s):
+    TOKEN_REFRESH_INTERVAL = 60  # 50 minutes in seconds
+    start_time = time.time()
+
+    while True:
+        elapsed = time.time() - start_time
+        if elapsed >= max_runtime_s:
+            logging.info("Maximum runtime reached. Shutting down.")
+            break
+
+        # request a new token
+        t = epc_cli.request_token(config_data)
+        token_path = os.path.expanduser(f"{config_data['application_data']}/token.json")
+        data_p = {"epc_token":f"{t}"}
+        with open(token_path, "w") as f:
+            json.dump(data_p, f, indent=2)
+        os.chmod(token_path, 0o600)
+
+        # sleep until next refresh or until max runtime
+        time_to_next_refresh = TOKEN_REFRESH_INTERVAL
+        if elapsed + TOKEN_REFRESH_INTERVAL > max_runtime_s:
+            time_to_next_refresh = max_runtime_s - elapsed
+        time.sleep(time_to_next_refresh)
+
+log_file_path = f"{config_data['application_data']}/logs/epc_d.log"
+log_dir = os.path.dirname(log_file_path)
+if log_dir:
+    os.makedirs(log_dir, exist_ok=True)
+pid_file_path = f"{config_data['application_data']}/epc_d.pid"
+
+
+current_dir = os.getcwd()
+with open(log_file_path, "a+") as log_file:
+    with daemon.DaemonContext(
+        working_directory=current_dir,  # Set to current directory
+        pidfile=daemon.pidfile.PIDLockFile(pid_file_path),
+        stdout=log_file,
+        stderr=log_file,
+        uid=os.getuid(),
+        gid=os.getgid() 
+    ):
+        refresh_token_loop(config_data, max_runtime_s)

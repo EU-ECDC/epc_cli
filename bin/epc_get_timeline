@@ -35,7 +35,8 @@ t = None
 if epc_cli.is_token_potentially_valid(config_data):
     t = epc_cli.read_token(config_data)
 else:
-    t = epc_cli.request_token(config_data)
+        epc_cli.set_cryptfile_keyring(config_data["env"]["kr_path"])
+        t = epc_cli.request_token(config_data)
 print()
 
 c = epc_cli.get_upload_timeline(t, config_data, args.guid)

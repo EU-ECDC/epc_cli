@@ -1,4 +1,4 @@
-name: epc_cli2
+name: epc_cli
 channels:
   - conda-forge
 dependencies:
