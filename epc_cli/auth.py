@@ -91,3 +91,11 @@ def request_token(config_data):
         sys.exit()
     else:
         return token
+
+
+def write_token(config_data, token):
+    token_file = f"{config_data['application_data']}/token.json"
+    data_p = {"epc_token":f"{token}"}
+    with open(token_file, "w") as f:
+        json.dump(data_p, f, indent=2)
+    os.chmod(token_file, 0o600)

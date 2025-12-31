@@ -234,6 +234,10 @@ epc_cli.automate_submission(config_data = config_data,
 ```
 
 ## Changelog
+0.10.0
+- added `write_token()` function to fully utilize the token's validity period
+- [fix] epc_set_secrets: added validation to prevent conflicting keyring path definitions from config file and command-line parameters
+
 0.9.1
 - [fix] fixed Markdown rendering issues in the README file
 - [fix] corrected typos in variable names in `bin/epc_upload_csv`
