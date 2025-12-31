@@ -328,44 +328,46 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
         raise Exception(f"status_code:{response.status_code}; reponse:{response.text}")
 
 
-def upload_with_presigned_url(config_data, file_path, presigned_url, chunk_size=1048576):
+def upload_with_presigned_url(config_data, file_path, presigned_url):
     logging.info(f"File upload - {file_path}")
+
     headers = {
         "x-amz-meta-uploadedby": config_data["credentials"]["username"].upper()
-
     }
 
-    """
-    Upload a file to an S3 bucket using a pre-signed URL with a progress bar.
+    file_size = os.path.getsize(file_path)
 
-    :param file_path: Path to the file to upload.
-    :param presigned_url: Pre-signed URL for the S3 object.
-    :param chunk_size: the file will be uploaded in chunks. This sets the chunk size (default: 1MB)
-    """
-    with open(file_path, 'rb') as file:
-        # Get the file size to use for the progress bar
-        file_size = len(file.read())
-        file.seek(0)  # Reset the file pointer to the beginning
+    with open(file_path, "rb") as f:
+        with tqdm(
+            total=file_size,
+            unit="B",
+            unit_scale=True,
+            desc="    Status"
+        ) as pbar:
 
-        # Initialize the progress bar
-        with tqdm(total=file_size, unit='B', unit_scale=True, desc='    Status') as pbar:
-            def upload_chunk(size=chunk_size):
-                """
-                Read and upload file in chunks, updating the progress bar.
-                """
-                while True:
-                    chunk = file.read(size)
-                    if not chunk:
-                        break
-                    response = requests.put( presigned_url, data=chunk, headers=headers, verify=certifi.where())
-                    pbar.update(len(chunk))  # Update the progress bar
-                    if response.status_code != 200:
-                        raise Exception(f"Failed to upload file. Status code: {response.status_code}, Response: {response.text}")
+            wrapped_file = tqdm.wrapattr(
+                f,
+                "read",
+                total=file_size,
+                callback=pbar.update
+            )
 
-            # Upload the file in chunks
-            upload_chunk()
+            response = requests.put(
+                presigned_url,
+                data=wrapped_file,
+                headers=headers,
+                verify=certifi.where(),
+                timeout=(10, 900)  # ← added timeout
+            )
 
-        print("    File uploaded successfully!")
+    if response.status_code != 200:
+        raise Exception(
+            f"Failed to upload file. "
+            f"Status code: {response.status_code}, "
+            f"Response: {response.text}"
+        )
+
+    print("    File uploaded successfully!")
 
 
 def get_naming_conventions_by_subject_code(token, config_data, subject_code, output_file):
