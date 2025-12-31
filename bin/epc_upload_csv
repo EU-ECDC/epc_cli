@@ -70,6 +70,7 @@ if epc_cli.is_token_potentially_valid(config):
 else:
     epc_cli.set_cryptfile_keyring(config["env"]["kr_path"])
     t = epc_cli.request_token(config)
+    epc_cli.write_token(config, t)
 print()
 
 z_archive = None
