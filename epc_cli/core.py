@@ -337,28 +337,36 @@ def upload_with_presigned_url(config_data, file_path, presigned_url):
 
     file_size = os.path.getsize(file_path)
 
-    with open(file_path, "rb") as f:
-        with tqdm(
-            total=file_size,
-            unit="B",
-            unit_scale=True,
-            desc="    Status"
-        ) as pbar:
+    with open(file_path, "rb") as f, tqdm(
+        total=file_size,
+        unit="B",
+        unit_scale=True,
+        desc="    Status"
+    ) as pbar:
 
-            wrapped_file = tqdm.wrapattr(
-                f,
-                "read",
-                total=file_size,
-                callback=pbar.update
-            )
+        class TqdmFile:
+            def __init__(self, f, pbar):
+                self.f = f
+                self.pbar = pbar
 
-            response = requests.put(
-                presigned_url,
-                data=wrapped_file,
-                headers=headers,
-                verify=certifi.where(),
-                timeout=(10, 900)  # ← added timeout
-            )
+            def read(self, size=-1):
+                chunk = self.f.read(size)
+                if chunk:
+                    self.pbar.update(len(chunk))
+                return chunk
+
+            def __getattr__(self, attr):
+                return getattr(self.f, attr)
+
+        wrapped_file = TqdmFile(f, pbar)
+
+        response = requests.put(
+            presigned_url,
+            data=wrapped_file,   # <-- file-like, NO chunked
+            headers=headers,
+            verify=certifi.where(),
+            timeout=(30, 3600)
+        )
 
     if response.status_code != 200:
         raise Exception(
@@ -368,7 +376,6 @@ def upload_with_presigned_url(config_data, file_path, presigned_url):
         )
 
     print("    File uploaded successfully!")
-
 
 def get_naming_conventions_by_subject_code(token, config_data, subject_code, output_file):
     logging.info(f"Fetching the naming conventions for {subject_code}")

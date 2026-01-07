@@ -29,8 +29,6 @@ parser.add_argument("-cc", "--country_code", type=str,
                     help="Country code (ISO 3166-1 alpha-2, e.g., IT, SE, DE)", required=True)
 parser.add_argument("-f", "--files", type=str, nargs='+',
                     help="List of files to process [space-separated]", required=True)
-parser.add_argument("-cs", "--chunk_size", type=int,
-                    help="Chunk size for upload in bytes (default: 1048576)")
 args = parser.parse_args()
 
 
@@ -54,14 +52,10 @@ else:
     epc_cli.write_token(config_data, t)
 print()
 
-chunk_size = 1048576
-if args.chunk_size:
-    chunk_size = args.chunk_size
-
 for f in expanded_files:
     a = epc_cli.get_s3_presigned_url(t, config_data, args.subject, args.country_code, f)
     print()
     #print("pre-signed url: {}".format(a['fileName']))
-    epc_cli.upload_with_presigned_url(config_data, f, a['fileName'], chunk_size)
+    epc_cli.upload_with_presigned_url(config_data, f, a['fileName'])
     print()
 
