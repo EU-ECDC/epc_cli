@@ -77,7 +77,10 @@ def request_token(config_data):
         "resource": config_data["env"]["resource"],
         "scope": "openid"
     }
-    response = requests.post(config_data["env"]["authentication_url"], data = request_payload, verify = certifi.where())
+    
+    response = requests.post(config_data["env"]["authentication_url"], 
+                             data = request_payload, 
+                             verify = certifi.where())
 
     if response.status_code == 200:
         try:
@@ -87,10 +90,10 @@ def request_token(config_data):
             logging.error("I was not able to parse the response")
     else:
         logging.debug(f"{response.status_code} | {response.text}")
+    
     if token == "":
-        sys.exit()
-    else:
-        return token
+        raise Exception("ERROR: token response invalid or missing access token")
+    return token
 
 
 def write_token(config_data, token):
