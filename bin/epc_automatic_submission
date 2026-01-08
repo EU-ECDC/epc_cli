@@ -232,6 +232,7 @@ if csv_xml and (not seq_data):
     else:
         epc_cli.set_cryptfile_keyring(config_data["env"]["kr_path"])
         t = epc_cli.request_token(config_data)
+        epc_cli.write_token(config_data, t)
     print()
 
     if args.parent_child and len(csv_xml) == 2:

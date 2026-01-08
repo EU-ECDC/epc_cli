@@ -234,6 +234,15 @@ epc_cli.automate_submission(config_data = config_data,
 ```
 
 ## Changelog
+0.11.0
+- upload to S3 via presigned URL is now performed in a single PUT request
+- authentication tokens are now cached on disk to reduce the number of times the user is prompted for the keyring password
+- the user is now explicitly notified when the token request returns an empty or invalid token
+
+0.10.0
+- added `write_token()` function to fully utilize the token's validity period
+- [fix] epc_set_secrets: added validation to prevent conflicting keyring path definitions from config file and command-line parameters
+
 0.9.1
 - [fix] fixed Markdown rendering issues in the README file
 - [fix] corrected typos in variable names in `bin/epc_upload_csv`
