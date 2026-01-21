@@ -12,6 +12,7 @@ import base64
 import certifi
 import uuid
 import zipfile
+import base64
 
 def zip_files(file_list):
     if len(file_list) != 2:
@@ -308,11 +309,11 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
         raise Exception("ERROR: the file {} does not exists".format(file_name))
 
     headers = {
-        'Authorization': "Bearer {}".format(token)
+        'Authorization': "Bearer {}".format(token),
     }
     basename = os.path.basename(file_name)
     endpoint = config_data["env"]["base_url_endpoint"] + f"/api/v1/DataUploadAPI/WGS-Upload/{subject_code}/{country_code}/{basename}"
-    #print(endpoint)
+    print(endpoint)
     response = requests.get(endpoint, headers=headers, verify = certifi.where())
     if response.status_code == 200:
         try:
@@ -320,6 +321,7 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
             #print(s3_url_data)
             if "fileName" in s3_url_data:
                 print("    fileName: [...]{}".format(s3_url_data["fileName"][-10:]))
+                print(s3_url_data["fileName"])
             return s3_url_data
         except:
             print("[ERROR] I could not parse the response")
@@ -328,11 +330,25 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
         raise Exception(f"status_code:{response.status_code}; reponse:{response.text}")
 
 
-def upload_with_presigned_url(config_data, file_path, presigned_url):
+def get_winaccountname(token):
+    try:
+        _, payload_b64, _ = token.split(".")
+        payload_b64 += "=" * (-len(payload_b64) % 4)
+        payload = json.loads(
+            base64.urlsafe_b64decode(payload_b64).decode("utf-8")
+        )
+
+        return payload.get("winaccountname")
+
+    except Exception as e:
+        raise ValueError("Invalid JWT token") from e
+
+
+def upload_with_presigned_url(token, file_path, presigned_url):
     logging.info(f"File upload - {file_path}")
 
     headers = {
-        "x-amz-meta-uploadedby": config_data["credentials"]["username"].upper()
+        "x-amz-meta-uploadedby": get_winaccountname(token)
     }
 
     file_size = os.path.getsize(file_path)
@@ -376,6 +392,8 @@ def upload_with_presigned_url(config_data, file_path, presigned_url):
         )
 
     print("    File uploaded successfully!")
+
+
 
 def get_naming_conventions_by_subject_code(token, config_data, subject_code, output_file):
     logging.info(f"Fetching the naming conventions for {subject_code}")

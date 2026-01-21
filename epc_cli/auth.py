@@ -62,7 +62,6 @@ def read_token(config_data):
             logging.error(f"Unexpected error reading token file: {e}")
     return(token)
 
-
 def request_token(config_data):
     logging.info("Requesting token")
     token = ""
