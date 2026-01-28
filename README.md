@@ -235,7 +235,8 @@ epc_cli.automate_submission(config_data = config_data,
 
 ## Changelog
 0.12.0
-- [fix] fixed critical issue #5: S3 presigned URL upload fails (SignatureDoesNotMatch)
+- fixed issue #5: S3 presigned URL upload fails (SignatureDoesNotMatch)
+- [fix] using raw strings to correctly escape dots in strings used to determine the naming convention type (iso validation)
 
 0.11.0
 - upload to S3 via presigned URL is now performed in a single PUT request
