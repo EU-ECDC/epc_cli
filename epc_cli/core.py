@@ -12,6 +12,7 @@ import base64
 import certifi
 import uuid
 import zipfile
+import base64
 
 def zip_files(file_list):
     if len(file_list) != 2:
@@ -308,11 +309,10 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
         raise Exception("ERROR: the file {} does not exists".format(file_name))
 
     headers = {
-        'Authorization': "Bearer {}".format(token)
+        'Authorization': "Bearer {}".format(token),
     }
     basename = os.path.basename(file_name)
     endpoint = config_data["env"]["base_url_endpoint"] + f"/api/v1/DataUploadAPI/WGS-Upload/{subject_code}/{country_code}/{basename}"
-    #print(endpoint)
     response = requests.get(endpoint, headers=headers, verify = certifi.where())
     if response.status_code == 200:
         try:
@@ -328,11 +328,25 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
         raise Exception(f"status_code:{response.status_code}; reponse:{response.text}")
 
 
-def upload_with_presigned_url(config_data, file_path, presigned_url):
+def get_winaccountname(token):
+    try:
+        _, payload_b64, _ = token.split(".")
+        payload_b64 += "=" * (-len(payload_b64) % 4)
+        payload = json.loads(
+            base64.urlsafe_b64decode(payload_b64).decode("utf-8")
+        )
+
+        return payload.get("winaccountname")
+
+    except Exception as e:
+        raise ValueError("Invalid JWT token") from e
+
+
+def upload_with_presigned_url(token, file_path, presigned_url):
     logging.info(f"File upload - {file_path}")
 
     headers = {
-        "x-amz-meta-uploadedby": config_data["credentials"]["username"].upper()
+        "x-amz-meta-uploadedby": get_winaccountname(token)
     }
 
     file_size = os.path.getsize(file_path)
@@ -377,6 +391,8 @@ def upload_with_presigned_url(config_data, file_path, presigned_url):
 
     print("    File uploaded successfully!")
 
+
+
 def get_naming_conventions_by_subject_code(token, config_data, subject_code, output_file):
     logging.info(f"Fetching the naming conventions for {subject_code}")
     endpoint = config_data["env"]["base_url_endpoint"] + f"/api/v1/DataUploadAPI/NamingConventions/Preferred/{subject_code}"
@@ -405,9 +421,9 @@ def start_iso_validation(token, config_data, upload_guid, reg_expr, subject_code
     print(f"    guid: {upload_guid}")
     print(f"    regex: {reg_expr}")
     naming_conv_type_id = None
-    if reg_expr.endswith(("fq.gz", "fastq.gz", "fq.gz$", "fastq.gz$",".(fastq|fq).gz$", '\.(fastq|fq)\.gz$')):
+    if reg_expr.endswith(("fq.gz", "fastq.gz", "fq.gz$", "fastq.gz$",r'\.(fastq|fq).gz$', r'\.(fastq|fq)\.gz$')):
         naming_conv_type_id = 1
-    elif reg_expr.endswith(("fasta", "fa", "fa$", "fasta$", ".(fasta|fa)$", '\.(fasta|fa)\.gz$')):
+    elif reg_expr.endswith(("fasta", "fa", "fa$", "fasta$", r'\.(fasta|fa)$', r'\.(fasta|fa)\.gz$')):
         naming_conv_type_id = 2
     else:
         raise Exception(f"ERROR: cannot determine the naming convention type id")
