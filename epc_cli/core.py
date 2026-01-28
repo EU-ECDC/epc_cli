@@ -313,7 +313,6 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
     }
     basename = os.path.basename(file_name)
     endpoint = config_data["env"]["base_url_endpoint"] + f"/api/v1/DataUploadAPI/WGS-Upload/{subject_code}/{country_code}/{basename}"
-    print(endpoint)
     response = requests.get(endpoint, headers=headers, verify = certifi.where())
     if response.status_code == 200:
         try:
@@ -321,7 +320,6 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
             #print(s3_url_data)
             if "fileName" in s3_url_data:
                 print("    fileName: [...]{}".format(s3_url_data["fileName"][-10:]))
-                print(s3_url_data["fileName"])
             return s3_url_data
         except:
             print("[ERROR] I could not parse the response")
@@ -423,9 +421,9 @@ def start_iso_validation(token, config_data, upload_guid, reg_expr, subject_code
     print(f"    guid: {upload_guid}")
     print(f"    regex: {reg_expr}")
     naming_conv_type_id = None
-    if reg_expr.endswith(("fq.gz", "fastq.gz", "fq.gz$", "fastq.gz$",".(fastq|fq).gz$", '\.(fastq|fq)\.gz$')):
+    if reg_expr.endswith(("fq.gz", "fastq.gz", "fq.gz$", "fastq.gz$",r'\.(fastq|fq).gz$', r'\.(fastq|fq)\.gz$')):
         naming_conv_type_id = 1
-    elif reg_expr.endswith(("fasta", "fa", "fa$", "fasta$", ".(fasta|fa)$", '\.(fasta|fa)\.gz$')):
+    elif reg_expr.endswith(("fasta", "fa", "fa$", "fasta$", r'\.(fasta|fa)$', r'\.(fasta|fa)\.gz$')):
         naming_conv_type_id = 2
     else:
         raise Exception(f"ERROR: cannot determine the naming convention type id")

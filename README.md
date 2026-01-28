@@ -234,6 +234,9 @@ epc_cli.automate_submission(config_data = config_data,
 ```
 
 ## Changelog
+0.12.0
+- [fix] fixed critical issue #5: S3 presigned URL upload fails (SignatureDoesNotMatch)
+
 0.11.0
 - upload to S3 via presigned URL is now performed in a single PUT request
 - authentication tokens are now cached on disk to reduce the number of times the user is prompted for the keyring password
