@@ -324,6 +324,9 @@ def get_s3_presigned_url(token, config_data, subject_code, country_code, file_na
         except:
             print("[ERROR] I could not parse the response")
             print(response.text)
+    if response.status_code == 409:
+        logging.warning(f"File already present on S3 [{basename}]. Skipping upload.")
+        return None
     else:
         raise Exception(f"status_code:{response.status_code}; reponse:{response.text}")
 

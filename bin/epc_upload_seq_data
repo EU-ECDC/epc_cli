@@ -54,8 +54,9 @@ print()
 
 for f in expanded_files:
     a = epc_cli.get_s3_presigned_url(t, config_data, args.subject, args.country_code, f)
+    if a is None:
+        continue
     print()
-    #print("pre-signed url: {}".format(a['fileName']))
     epc_cli.upload_with_presigned_url(t, f, a['fileName'])
     print()
 

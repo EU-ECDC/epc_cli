@@ -122,7 +122,7 @@ mamba activate epc_cli
 
 Then we can submit sequence data and the csv with the isolate metadata:
 ```
-./bin/epc_automatic_submission -c config-uat.json --upload_type "Add/Update" -f dataset/LEGIISO_metadata_submission-A10.csv dataset/*-test8.fastq.gz --subject LEGIISO --country_code NL --regex '^(?<RecordId>[A-Z0-9\-]+)_[A-Z0-9_a-z\-]+.(fastq|fq).gz$'
+./bin/epc_automatic_submission -c config-uat.json --upload_type "Add/Update" -f dataset/LEGIISO_metadata_submission-A10.csv dataset/*-test8.fastq.gz --subject LEGIISO --country_code NL --regex '^(?<RecordId>[A-Z0-9\-]+)_[A-Z0-9_a-z\-]+\.(fastq|fq)\.gz$'
 ```
 
 Notes:
@@ -156,8 +156,7 @@ In this case you need to submit two csv or xml files as well as the fastq or fas
 
 The submission process differs only slightly from standard submissions.  
 ```
-./bin/epc_automatic_submission -c data/config-uat.json --upload_type "Add/Update" -f data/1.SALMISO_myupload.csv data/2.SALMISO_myupload_AST.csv data/28382022* data/11402022* --subject SALMISO --country_code NL --parent_child --rp_start 2022-04-13 --rp_end 2022-
-09-10
+./bin/epc_automatic_submission -c data/config-uat.json --upload_type "Add/Update" -f data/1.SALMISO_myupload.csv data/2.SALMISO_myupload_AST.csv data/28382022* data/11402022* --subject SALMISO --country_code NL --parent_child --rp_start 2022-04-13 --rp_end 2022-09-10
 ```
 
 Notes: 
@@ -229,11 +228,18 @@ epc_cli.automate_submission(config_data = config_data,
     upload_type = "Add/Update",        
     csv_xml = ["./data/LEGIISO_metadata_submission-A14.csv"],
     seq_data = glob.glob("data/*-test39.fastq.gz"),
-    regex = '^(?<RecordId>[A-Z0-9\-]+)_[A-Z0-9_a-z\-]+.(fastq|fq).gz$'
+    regex = '^(?<RecordId>[A-Z0-9\-]+)_[A-Z0-9_a-z\-]+\.(fastq|fq)\.gz$'
  )
 ```
 
 ## Changelog
+0.13.0
+- skipping file upload if file is already present on S3 instead of raising an exception
+
+0.12.1
+- [fix] epc_iso_validation: fixed issue with missing keyring setup
+- [fix] fixed regex in the documentation
+
 0.12.0
 - fixed issue #5: S3 presigned URL upload fails (SignatureDoesNotMatch)
 - [fix] using raw strings to correctly escape dots in strings used to determine the naming convention type (iso validation)
@@ -275,33 +281,4 @@ epc_cli.automate_submission(config_data = config_data,
 - added licence information (EUPL 1.2)
 - README file updated (installation instructions)
 
-0.5.1
-- [fix] SSL verification enabled for request_token()
-- minor changes to README and Dockerfile
-
-0.5.0
-- support for subjects with a parent-child layout
-
-0.4.1
-- [fix] SSL verification is now enabled (previously verify = False)  
-
-0.4.0
-- added dockerfile to generate a docker image for epc_cli
-
-0.3.0
-- improved automation features
-  - the user can use a single command to trigger the full workflow instead of typing a separate command for each step of the workflow
-  - the user can provide a list of files \[csv|xml|fasta|fastq.gz|fq.gz\] and the system will autodetect the steps of the workflow which are needed to finalise that specific data submission  
-  - the user can trigger the automatic approval of a submission through the --approve option. If the user does not intend to use such option, he/she has to manually execute epc_finalise_submission to approve or reject the data submission
-- changes to the configuration file 
-  - the user can choose an arbitrary folder where to store the data associated with the submissions (technical validation and epidemiological validation reports).
-
-0.2.0
-- full set of functions to cover the API calls used for data submission
-- full workflow that covers data submission of epidemiological and WGS data
-- conda environment yaml file (env/epc_cli.yaml)
-- README file describing software installation and usage
-
-0.1.0
-- capability to get a token, authenticate and get the list of available WGS subjects
-- loading credentials and urls from a json file specified by the user (default: config.json)
+For older versions please see [Changelog.md](Changelog.md)
