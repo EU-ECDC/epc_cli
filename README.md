@@ -233,6 +233,9 @@ epc_cli.automate_submission(config_data = config_data,
 ```
 
 ## Changelog
+0.13.0
+- skipping file upload if file is already present on S3 instead of raising an exception
+
 0.12.1
 - [fix] epc_iso_validation: fixed issue with missing keyring setup
 - [fix] fixed regex in the documentation
